@@ -23,6 +23,21 @@ public static class JsonResource
 
     #endregion
 
+    #region Request Validation
+
+    /// <summary>
+    /// Caller input failed a presence or format check, so the request became HTTP 400. The
+    /// per-field messages are in the response's <c>Errors</c> map, not in <c>RespDesp</c>.
+    /// </summary>
+    /// <remarks>
+    /// Different from a business-rule failure: "title is required" is validation, but
+    /// "that slug is already taken" is a legitimate answer at HTTP 200 and belongs in
+    /// <c>Result&lt;T&gt;.Error</c> with a specific code.
+    /// </remarks>
+    public const string Validation = "ME#400";
+
+    #endregion
+
     #region Message Warning
 
     /// <summary>A required field was not supplied.</summary>

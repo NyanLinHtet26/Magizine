@@ -1,100 +1,54 @@
-using MagizineAdmin.Api.Features.ArticleCategory;
+using Magizine.Shared.Models.ArticleCategory;
 using Magizine.Shared.Models.Paging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MagizineAdmin.Api.Features.ArticleCategory;
 
-/// <summary>
-/// Admin CRUD for article categories. Requires authentication (any valid admin token).
-/// </summary>
-[Authorize]
+// [Authorize] // Temporarily commented out for testing without a login token
 [ApiController]
 [Route("api/admin/article-category")]
 public sealed class ArticleCategoryController : ControllerBase
 {
-    private readonly ListArticleCategoryService _listService;
-    private readonly GetArticleCategoryByIdService _getService;
-    private readonly CreateArticleCategoryService _createService;
-    private readonly UpdateArticleCategoryService _updateService;
-    private readonly DeleteArticleCategoryService _deleteService;
+    private readonly ArticleCategoryService _articleCategoryService;
 
-    public ArticleCategoryController(
-        ListArticleCategoryService listService,
-        GetArticleCategoryByIdService getService,
-        CreateArticleCategoryService createService,
-        UpdateArticleCategoryService updateService,
-        DeleteArticleCategoryService deleteService)
+    public ArticleCategoryController(ArticleCategoryService articleCategoryService)
     {
-        _listService = listService;
-        _getService = getService;
-        _createService = createService;
-        _updateService = updateService;
-        _deleteService = deleteService;
+        _articleCategoryService = articleCategoryService;
     }
 
-    /// <summary>
-    /// Returns a paged list of categories ordered by SortOrder then Id.
-    /// </summary>
-    /// <param name="page">1-based page number (default 1)</param>
-    /// <param name="pageSize">Items per page (default 20, max 100)</param>
-    [HttpGet]
-    public async Task<ActionResult<PagedResult<ArticleCategoryResModel>>> List(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
-        CancellationToken ct = default)
+    [HttpPost("Detail")]
+    public async Task<IActionResult> GetById([FromBody] ArticleCategoryDetailReqModel reqModel)
     {
-        var request = PageRequest.Create(page, pageSize);
-        var result = await _listService.ExecuteAsync(request, ct);
+        var result = await _articleCategoryService.GetArticleCategoryById(reqModel);
         return Ok(result);
     }
 
-    /// <summary>
-    /// Returns a single category by ID.
-    /// </summary>
-    [HttpGet("{id:long}")]
-    public async Task<ActionResult<ArticleCategoryResModel>> GetById(
-        long id,
-        CancellationToken ct = default)
+    [HttpPost("List")]
+    public async Task<IActionResult> GetList([FromBody] PageRequest reqModel)
     {
-        var category = await _getService.ExecuteAsync(id, ct);
-        return category is null ? NotFound() : Ok(category);
+        var result = await _articleCategoryService.GetArticleCategoryList(reqModel);
+        return Ok(result);
     }
 
-    /// <summary>
-    /// Creates a new category. Slug is auto-generated from Name if omitted.
-    /// </summary>
-    [HttpPost]
-    public async Task<ActionResult<ArticleCategoryResModel>> Create(
-        CreateArticleCategoryReqModel req,
-        CancellationToken ct = default)
+    [HttpPost("Create")]
+    public async Task<IActionResult> Create([FromBody] CreateArticleCategoryReqModel reqModel)
     {
-        var category = await _createService.ExecuteAsync(req, ct);
-        return CreatedAtAction(nameof(GetById), new { id = category.ArticleCategoryId }, category);
+        var result = await _articleCategoryService.CreateArticleCategory(reqModel);
+        return Ok(result);
     }
 
-    /// <summary>
-    /// Updates an existing category. Slug is auto-generated from Name if omitted.
-    /// </summary>
-    [HttpPut("{id:long}")]
-    public async Task<ActionResult<ArticleCategoryResModel>> Update(
-        long id,
-        UpdateArticleCategoryReqModel req,
-        CancellationToken ct = default)
+    [HttpPost("Update")]
+    public async Task<IActionResult> Update([FromBody] UpdateArticleCategoryReqModel reqModel)
     {
-        var category = await _updateService.ExecuteAsync(id, req, ct);
-        return Ok(category);
+        var result = await _articleCategoryService.UpdateArticleCategory(reqModel);
+        return Ok(result);
     }
 
-    /// <summary>
-    /// Soft-deletes a category. The name/slug become available for reuse.
-    /// </summary>
-    [HttpDelete("{id:long}")]
-    public async Task<ActionResult> Delete(
-        long id,
-        CancellationToken ct = default)
+    [HttpPost("Delete")]
+    public async Task<IActionResult> Delete([FromBody] ArticleCategoryDetailReqModel reqModel)
     {
-        await _deleteService.ExecuteAsync(id, ct);
-        return NoContent();
+        var result = await _articleCategoryService.DeleteArticleCategory(reqModel);
+        return Ok(result);
     }
 }

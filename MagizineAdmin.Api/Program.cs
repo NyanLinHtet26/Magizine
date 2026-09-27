@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using MagizineAdmin.Api;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,6 +36,10 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference(options => 
+    {
+        options.WithTitle("Magizine Admin API");
+    });
 }
 
 // empty delegate => use the IExceptionHandler implementations registered above

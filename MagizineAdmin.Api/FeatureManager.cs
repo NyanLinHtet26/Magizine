@@ -252,13 +252,7 @@ public static class FeatureManager
     private static WebApplicationBuilder AddFeatureServices(this WebApplicationBuilder builder)
     {
         builder.Services.AddHttpContextAccessor();
-        builder.Services.AddScoped<CurrentAdminAccessor>();
-
-        builder.Services.AddScoped<ListArticleCategoryService>();
-        builder.Services.AddScoped<GetArticleCategoryByIdService>();
-        builder.Services.AddScoped<CreateArticleCategoryService>();
-        builder.Services.AddScoped<UpdateArticleCategoryService>();
-        builder.Services.AddScoped<DeleteArticleCategoryService>();
+        builder.Services.AddScoped<ArticleCategoryService>();
 
         return builder;
     }

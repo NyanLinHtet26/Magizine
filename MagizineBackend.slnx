@@ -2,5 +2,6 @@
   <Project Path="MagizineAuthor.Api/MagizineAuthor.Api.csproj" />
   <Project Path="Magizine.DataBase/Magizine.DataBase.csproj" />
   <Project Path="MagizineAdmin.Api/MagizineAdmin.Api.csproj" />
+  <Project Path="MagizinePublic.Api/MagizinePublic.Api.csproj" />
   <Project Path="Magizine.Shared/Magizine.Shared.csproj" />
 </Solution>

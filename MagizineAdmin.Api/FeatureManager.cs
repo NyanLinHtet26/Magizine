@@ -4,6 +4,7 @@ using Magizine.Shared.Enums;
 using Magizine.Shared.Exceptions;
 using Magizine.Shared.JsonResources;
 using Magizine.Shared.Security;
+using MagizineAdmin.Api.Features.ArticleCategory;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
@@ -41,7 +42,8 @@ public static class FeatureManager
             .AddDatabaseServices()
             .AddCorsServices()
             .AddJwtServices()
-            .AddSecurityServices();
+            .AddSecurityServices()
+            .AddFeatureServices();
 
     private static WebApplicationBuilder AddDatabaseServices(this WebApplicationBuilder builder)
     {
@@ -241,5 +243,23 @@ public static class FeatureManager
                 Errors = null
             },
             httpContext.RequestAborted);
+    }
+
+    /// <summary>
+    /// Registers feature-specific services (controllers, services, etc.) for this API.
+    /// Keeps the main chain clean and makes it easy to see what each API exposes.
+    /// </summary>
+    private static WebApplicationBuilder AddFeatureServices(this WebApplicationBuilder builder)
+    {
+        builder.Services.AddHttpContextAccessor();
+        builder.Services.AddScoped<CurrentAdminAccessor>();
+
+        builder.Services.AddScoped<ListArticleCategoryService>();
+        builder.Services.AddScoped<GetArticleCategoryByIdService>();
+        builder.Services.AddScoped<CreateArticleCategoryService>();
+        builder.Services.AddScoped<UpdateArticleCategoryService>();
+        builder.Services.AddScoped<DeleteArticleCategoryService>();
+
+        return builder;
     }
 }

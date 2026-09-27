@@ -4,4 +4,5 @@
   <Project Path="MagizineAdmin.Api/MagizineAdmin.Api.csproj" />
   <Project Path="MagizinePublic.Api/MagizinePublic.Api.csproj" />
   <Project Path="Magizine.Shared/Magizine.Shared.csproj" />
+  <Project Path="Magizine.Tests/Magizine.Tests.csproj" />
 </Solution>

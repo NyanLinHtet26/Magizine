@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Magizine.DataBase\Magizine.DataBase.csproj" />
+    <ProjectReference Include="..\Magizine.Shared\Magizine.Shared.csproj" />
   </ItemGroup>
 
 </Project>

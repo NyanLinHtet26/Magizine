@@ -17,6 +17,7 @@ there are no controllers yet, and authentication has not been started.
 | `MagizineAuthor.Api` | Public, author-facing API | `net10.0` | `Microsoft.AspNetCore.OpenApi` 10.0.10 |
 | `MagizineAdmin.Api` | Admin/back-office API | `net10.0` | `Microsoft.AspNetCore.OpenApi` 10.0.10 |
 | `Magizine.DataBase` | EF Core data layer, referenced by both APIs | `net10.0` | `Microsoft.EntityFrameworkCore{,.Relational,.Design}` 10.0.12, `Npgsql.EntityFrameworkCore.PostgreSQL` 10.0.3 |
+| `Magizine.Shared` | Cross-cutting primitives, referenced by both APIs | `net10.0` | none (zero dependencies) |
 
 Both APIs call one shared registration helper, so the provider and connection-string key are
 defined in exactly one place:
@@ -28,6 +29,37 @@ builder.Services.AddMagizineDatabase(builder.Configuration);
 `AddMagizineDatabase` lives in `Magizine.DataBase/DependencyInjection.cs` and registers
 `MagizineDbContext`. It throws a descriptive error at startup if
 `ConnectionStrings:DefaultConnection` is missing.
+
+### `Result<T>`
+
+`Magizine.Shared` holds `Result<T>` (`Models/Result.cs`) and `EnumRespType`
+(`Enums/EnumRespType.cs`) for expected service-layer outcomes — validation, not-found,
+conflict. It carries no HTTP or logging dependency, so the same type works in a worker or
+test. Turning a result into an HTTP response is the API layer's job.
+
+```csharp
+Result<TblArticle> result = article is null
+    ? Result<TblArticle>.Error("ME#404", "Article not found")
+    : Result<TblArticle>.Success(article);
+
+return result.IsSuccess ? Results.Ok(result.Data) : Results.NotFound(...);
+```
+
+Guidelines:
+
+- Return `Result<T>` for **expected** failures. Let genuine exceptions throw, or wrap them
+  with `Result<T>.Error(ex, "ME#999", logger.LogError)`, which logs the exception and
+  substitutes a generic message so internal detail never reaches a client.
+- Check `IsError` rather than comparing `RespType`; `Warning` and `None` are not errors.
+- Use the `params` overloads — `Success(code, parameters)`, `Success(code, data, parameters)`,
+  `Error(code, parameters)` — when you need `RespDespParameter` values for a client-side
+  message template.
+- Avoid `Result<object>`. On it, `Success(data, code)` is ambiguous between
+  `Success(T data, string code)` and `Success(string code, T data, params object[])` — neither
+  candidate is uniformly more specific, so the call fails to compile. `Result<string>` and any
+  DTO-typed `Result<T>` are unaffected.
+- `Magizine.DataBase` deliberately does **not** reference `Magizine.Shared` — keep result
+  wrapping in services and controllers, not in the data layer.
 
 ---
 

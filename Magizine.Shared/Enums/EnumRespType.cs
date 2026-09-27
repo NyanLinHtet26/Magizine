@@ -9,7 +9,6 @@ public enum EnumRespType
 {
     [Description("None")] None,
     [Description("Success")] Success,
-    // [Description("Information")] MI,
     [Description("Warning")] Warning,
     [Description("Error")] Error,
     [Description("System Error")] SystemError

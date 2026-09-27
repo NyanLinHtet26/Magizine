@@ -42,6 +42,12 @@ app.UseExceptionHandler(_ => { });
 
 app.UseHttpsRedirection();
 
+// CORS runs after UseRouting (inserted automatically by WebApplication once endpoints are mapped)
+// and before authorization, so a preflight is answered by the CORS middleware instead of falling
+// through to a controller that rejects OPTIONS with 405. With an empty Cors:AllowedOrigins list
+// this permits no cross-origin browser calls, which is the intended state until a frontend exists.
+app.UseCors();
+
 // Authentication must run BEFORE authorization: [Authorize] needs the principal that
 // UseAuthentication populates. Reversed, every policy evaluates as anonymous and
 // endpoints behind [Authorize] return 401 even with a valid token.

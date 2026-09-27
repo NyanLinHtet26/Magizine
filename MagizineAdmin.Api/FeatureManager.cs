@@ -22,8 +22,8 @@ namespace MagizineAdmin.Api;
 /// <item>The signing key is validated at startup instead of being read as
 /// <c>?? string.Empty</c>. An empty key does not fail loudly - it produces tokens anyone can
 /// forge.</item>
-/// <item>CORS is not configured with <c>AllowAnyOrigin()</c> here. It arrives in its own step with
-/// the real frontend origins.</item>
+/// <item>CORS uses an explicit origin allowlist that is empty by default, not the reference's
+/// <c>AllowAnyOrigin()</c>.</item>
 /// <item>401 and 403 responses are written as the same <see cref="ErrorEnvelope"/> as every other
 /// failure, instead of the framework's empty-bodied challenge.</item>
 /// </list>
@@ -39,12 +39,65 @@ public static class FeatureManager
     public static WebApplicationBuilder AddModularService(this WebApplicationBuilder builder)
         => builder
             .AddDatabaseServices()
+            .AddCorsServices()
             .AddJwtServices()
             .AddSecurityServices();
 
     private static WebApplicationBuilder AddDatabaseServices(this WebApplicationBuilder builder)
     {
         builder.Services.AddMagizineDatabase(builder.Configuration);
+        return builder;
+    }
+
+    /// <summary>
+    /// Restricts which browser origins may call this API. With an empty allowlist this registers a
+    /// policy that permits nothing, which is the correct default while there is no frontend.
+    /// </summary>
+    private static WebApplicationBuilder AddCorsServices(this WebApplicationBuilder builder)
+    {
+        var appName = typeof(FeatureManager).Assembly.GetName().Name!;
+
+        var corsOptions = builder.Configuration.GetSection(CorsOptions.SectionName).Get<CorsOptions>()
+            ?? new CorsOptions();
+
+        // Throws on a wildcard or malformed entry, so a typo cannot quietly open the API to
+        // every site on the internet.
+        corsOptions.Validate(appName);
+
+        builder.Services.AddSingleton(Options.Create(corsOptions));
+
+        using var startupLoggerFactory = LoggerFactory.Create(logging => logging
+            .AddConfiguration(builder.Configuration.GetSection("Logging"))
+            .AddConsole());
+
+        if (corsOptions.IsEmpty)
+        {
+            startupLoggerFactory
+                .CreateLogger($"{appName}.Cors")
+                .LogWarning(
+                    "No '{Cors}:AllowedOrigins' configured, so browser calls from other origins are "
+                    + "blocked. That is expected until a frontend exists; add origins to the {Section} "
+                    + "config section when one does.",
+                    CorsOptions.SectionName,
+                    CorsOptions.SectionName);
+        }
+
+        builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
+        {
+            if (corsOptions.IsEmpty)
+            {
+                // Deliberately add no origins: same-origin and non-browser callers still work.
+                return;
+            }
+
+            policy
+                .WithOrigins(corsOptions.AllowedOrigins)
+                .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+                // Tight on purpose. A custom request header needs adding here, and the preflight
+                // failure that results is a clear signal rather than a silent open door.
+                .WithHeaders("Authorization", "Content-Type", "Accept");
+        }));
+
         return builder;
     }
 

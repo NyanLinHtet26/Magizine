@@ -1,10 +1,10 @@
 using System.Text.Json.Serialization;
-using Magizine.DataBase;
 using MagizinePublic.Api;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Every service, the database, and the CORS policy are registered from one place.
+builder.AddModularService();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -27,12 +27,6 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.PropertyNamingPolicy = null;
 });
 
-//DataBase Config 
-builder.Services.AddMagizineDatabase(builder.Configuration);
-
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
-
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 var app = builder.Build();
@@ -47,6 +41,12 @@ if (app.Environment.IsDevelopment())
 app.UseExceptionHandler(_ => { });
 
 app.UseHttpsRedirection();
+
+// CORS runs after UseRouting (inserted automatically by WebApplication once endpoints are mapped)
+// and before authorization, so a preflight is answered by the CORS middleware instead of falling
+// through to a controller that rejects OPTIONS with 405. With an empty Cors:AllowedOrigins list
+// this permits no cross-origin browser calls, which is the intended state until a frontend exists.
+app.UseCors();
 
 app.UseAuthorization();
 

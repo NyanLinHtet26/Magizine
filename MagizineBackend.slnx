@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="MagizineAuthor.Api/MagizineAuthor.Api.csproj" />
+  <Project Path="Magizine.DataBase/Magizine.DataBase.csproj" />
+  <Project Path="MagizineAdmin.Api/MagizineAdmin.Api.csproj" />
+</Solution>

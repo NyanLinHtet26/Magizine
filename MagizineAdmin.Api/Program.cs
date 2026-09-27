@@ -1,10 +1,10 @@
 using System.Text.Json.Serialization;
-using Magizine.DataBase;
 using MagizineAdmin.Api;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Every service, the database, and JWT auth are registered from one place.
+builder.AddModularService();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -26,10 +26,6 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
     options.SerializerOptions.PropertyNamingPolicy = null;
 });
-builder.Services.AddMagizineDatabase(builder.Configuration);
-
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
@@ -45,6 +41,11 @@ if (app.Environment.IsDevelopment())
 app.UseExceptionHandler(_ => { });
 
 app.UseHttpsRedirection();
+
+// Authentication must run BEFORE authorization: [Authorize] needs the principal that
+// UseAuthentication populates. Reversed, every policy evaluates as anonymous and
+// endpoints behind [Authorize] return 401 even with a valid token.
+app.UseAuthentication();
 
 app.UseAuthorization();
 

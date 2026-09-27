@@ -61,8 +61,26 @@ public static class ErrorMapper
                 validation.Errors,
                 IsExpected: true),
 
-            // Authentication cases are deliberately absent rather than pre-emptively stubbed.
-            // Step 6 adds them once there is an actual exception type to map.
+            // Authenticated but not allowed - for example a service-level ownership check that
+            // cannot be expressed as [Authorize(Roles = ...)].
+            AuthorizationException authorization => new ErrorDescriptor(
+                HttpStatusCode.Forbidden,
+                EnumRespType.Error,
+                JsonResource.Forbidden,
+                authorization.RespDesp ?? "You are not allowed to perform this action.",
+                Errors: null,
+                IsExpected: true),
+
+            // Identity not established. Usually handled earlier by the JwtBearer challenge rather
+            // than reaching here, but mapped so a service that checks the principal itself and
+            // throws gets a correct 401 rather than a 500.
+            UnauthorizedAccessException => new ErrorDescriptor(
+                HttpStatusCode.Unauthorized,
+                EnumRespType.Error,
+                JsonResource.Unauthorized,
+                "Authentication is required to access this resource.",
+                Errors: null,
+                IsExpected: true),
 
             _ => new ErrorDescriptor(
                 HttpStatusCode.InternalServerError,

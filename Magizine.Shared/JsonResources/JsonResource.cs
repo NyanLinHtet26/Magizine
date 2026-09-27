@@ -23,6 +23,22 @@ public static class JsonResource
 
     #endregion
 
+    #region Authentication
+
+    /// <summary>
+    /// No valid credentials were presented, so the request became HTTP 401. The response also
+    /// carries a <c>WWW-Authenticate: Bearer</c> header.
+    /// </summary>
+    public const string Unauthorized = "ME#401";
+
+    /// <summary>
+    /// Credentials were valid but the role or ownership check failed, so the request became
+    /// HTTP 403. Distinct from <see cref="Unauthorized"/>: retrying will not help.
+    /// </summary>
+    public const string Forbidden = "ME#403";
+
+    #endregion
+
     #region Request Validation
 
     /// <summary>

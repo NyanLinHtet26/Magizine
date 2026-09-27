@@ -6,6 +6,8 @@ sharing a single EF Core data layer, backed by Supabase Postgres.
 **Status:** the data layer is complete. The APIs currently expose **no business endpoints** —
 there are no controllers yet, and authentication has not been started.
 
+**Repository:** `github.com/NyanLinHtet26/Magizine` (public) — default branch `Magzine-dev`.
+
 ---
 
 ## Project layout
@@ -208,10 +210,8 @@ Then re-run. Both arrays must stay the same length as each other.
   `Microsoft.AspNetCore.OpenApi` 10.0.10, has a known high-severity advisory
   ([GHSA-v5pm-xwqc-g5wc](https://github.com/advisories/GHSA-v5pm-xwqc-g5wc)). Currently
   accepted deliberately; needs an explicit package upgrade to clear.
-- **No endpoints exist yet.** The `.http` files probe `/openapi/v1.json`, which is the only
-  route that currently responds.
-- **Git history contains an old database password** in commit `88e8892`. It has been rotated and
-  is **dead** — connecting with it returns `28P01: password authentication failed`, which has
-  been verified. Treat the history string as inert.
+- **The published history is a single commit containing no credentials.** The pre-rotation
+  commit `88e8892` exists only on the local `master` and `archive-full-history` branches and was
+  never pushed. Don't `git push --all`, or push either branch to the public remote.
 - `Doc/` contains design `.xlsx` files and `Supabase_Schema.sql`. Copies of these also exist
   outside the repository; the committed copies in `Doc/` are the ones in use.

@@ -17,6 +17,16 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.PropertyNamingPolicy = null;
     });
 
+// The GlobalExceptionHandler writes its body with HttpResponse.WriteAsJsonAsync, which reads
+// Http.Json's JsonOptions - a DIFFERENT type from the MVC options configured above. Without
+// this second block a 500 serialises as camelCase + numeric enums while a 200 is PascalCase
+// + string enums, and clients reading result.RespCode get undefined on errors.
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    options.SerializerOptions.PropertyNamingPolicy = null;
+});
+
 //DataBase Config 
 builder.Services.AddMagizineDatabase(builder.Configuration);
 

@@ -34,13 +34,15 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
         httpContext.Response.ContentType = "application/json";
 
         // Shaped like Result<T> so clients parse one envelope. No exception detail, by design.
+        // RespType is the enum *name* to match JsonStringEnumConverter in Program.cs, and the
+        // property names are PascalCase to match Result<T>'s own serialised casing exactly.
         await httpContext.Response.WriteAsJsonAsync(
             new
             {
-                respType = "SystemError",
-                respCode = JsonResource.Fail,
-                respDesp = "An unexpected error occurred.",
-                traceId
+                RespType = nameof(EnumRespType.SystemError),
+                RespCode = JsonResource.Fail,
+                RespDesp = "An unexpected error occurred.",
+                TraceId = traceId
             },
             cancellationToken);
 

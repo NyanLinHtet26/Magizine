@@ -41,7 +41,7 @@ public sealed class PasswordHasher
     public const int MinWorkFactor = 10;
 
     /// <summary>Highest cost accepted. Past ~15 an attacker-facing login becomes unusable.</summary>
-    public const int MaxWorkFactor = 15;
+    public const int MaxWorkFactor = 20;
 
     /// <summary>
     /// A BCrypt hash is always exactly 60 characters: <c>$2</c> + variant + <c>$</c> +

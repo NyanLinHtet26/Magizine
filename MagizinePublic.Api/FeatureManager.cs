@@ -1,5 +1,6 @@
 using Magizine.DataBase;
 using Magizine.Shared.Security;
+using MagizinePublic.Api.Features.ArticleCategory;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
 
@@ -27,7 +28,8 @@ public static class FeatureManager
         => builder
             .AddDatabaseServices()
             .AddCorsServices()
-            .AddOpenApiServices();
+            .AddOpenApiServices()
+            .AddFeatureServices();
 
     private static WebApplicationBuilder AddDatabaseServices(this WebApplicationBuilder builder)
     {
@@ -96,6 +98,13 @@ public static class FeatureManager
                 document.Info.Title = ApiTitle;
                 return Task.CompletedTask;
             }));
+
+        return builder;
+    }
+
+    private static WebApplicationBuilder AddFeatureServices(this WebApplicationBuilder builder)
+    {
+        builder.Services.AddScoped<ArticleCategoryService>();
 
         return builder;
     }

@@ -8,3 +8,16 @@ GET {{MagizinePublic.Api_HostAddress}}/openapi/v1.json
 Accept: application/json
 
 ###
+
+# Fetch the list of active article categories
+GET {{MagizinePublic.Api_HostAddress}}/api/public/article-category/list
+Accept: application/json
+
+###
+
+# Fetch details of a specific article category by its slug
+# Replace 'test-category' with an actual slug in your database
+GET {{MagizinePublic.Api_HostAddress}}/api/public/article-category/test-category
+Accept: application/json
+
+###

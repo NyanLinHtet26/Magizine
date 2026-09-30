@@ -101,6 +101,22 @@ public class ArticleCategoryService
             var slug = string.IsNullOrWhiteSpace(req.Slug) ? Slugify(req.Name) : req.Slug;
             if (slug.Length > 30) slug = slug[..30].TrimEnd('-');
 
+            #region Validation
+            var isDuplicateNameOrSlug = await _db.TblArticleCategories
+                .AnyAsync(c => c.Name == req.Name || c.Slug == slug, ct);
+            if (isDuplicateNameOrSlug)
+            {
+                return Result<ArticleCategoryResModel>.Error("A category with the same Name or Slug already exists.");
+            }
+
+            var isDuplicateSortOrder = await _db.TblArticleCategories
+                .AnyAsync(c => c.SortOrder == req.SortOrder, ct);
+            if (isDuplicateSortOrder)
+            {
+                return Result<ArticleCategoryResModel>.Error("A category with this Sort Order already exists.");
+            }
+            #endregion
+
             var category = new TblArticleCategory
             {
                 Name = req.Name,

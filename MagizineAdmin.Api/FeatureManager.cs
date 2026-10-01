@@ -5,6 +5,8 @@ using Magizine.Shared.Exceptions;
 using Magizine.Shared.JsonResources;
 using Magizine.Shared.Security;
 using MagizineAdmin.Api.Features.ArticleCategory;
+using MagizineAdmin.Api.Features.Author;
+using MagizineAdmin.Api.Features.Article;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
@@ -253,6 +255,8 @@ public static class FeatureManager
     {
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddScoped<ArticleCategoryService>();
+        builder.Services.AddScoped<AuthorService>();
+        builder.Services.AddScoped<ArticleService>();
 
         return builder;
     }

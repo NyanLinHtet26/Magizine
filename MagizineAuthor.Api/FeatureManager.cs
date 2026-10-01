@@ -41,7 +41,8 @@ public static class FeatureManager
             .AddDatabaseServices()
             .AddCorsServices()
             .AddJwtServices()
-            .AddSecurityServices();
+            .AddSecurityServices()
+            .AddFeatureServices();
 
     private static WebApplicationBuilder AddDatabaseServices(this WebApplicationBuilder builder)
     {
@@ -241,5 +242,14 @@ public static class FeatureManager
                 Errors = null
             },
             httpContext.RequestAborted);
+    }
+
+    private static WebApplicationBuilder AddFeatureServices(this WebApplicationBuilder builder)
+    {
+        builder.Services.AddHttpContextAccessor();
+        builder.Services.AddScoped<MagizineAuthor.Api.Features.ArticleCategory.ArticleCategoryService>();
+        builder.Services.AddScoped<MagizineAuthor.Api.Features.Article.ArticleService>();
+
+        return builder;
     }
 }

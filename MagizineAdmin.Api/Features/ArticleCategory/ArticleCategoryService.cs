@@ -5,6 +5,7 @@ using Magizine.Shared.Models;
 using Magizine.Shared.Models.ArticleCategory;
 using Magizine.Shared.Models.Paging;
 using Magizine.Shared.Security;
+using Magizine.Shared.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -14,15 +15,18 @@ namespace MagizineAdmin.Api.Features.ArticleCategory;
 public class ArticleCategoryService
 {
     private readonly MagizineDbContext _db;
+    private readonly DapperService _dapperService;
     private readonly ILogger<ArticleCategoryService> _logger;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
     public ArticleCategoryService(
         MagizineDbContext db,
+        DapperService dapperService,
         ILogger<ArticleCategoryService> logger,
         IHttpContextAccessor httpContextAccessor)
     {
         _db = db;
+        _dapperService = dapperService;
         _logger = logger;
         _httpContextAccessor = httpContextAccessor;
     }
@@ -40,26 +44,25 @@ public class ArticleCategoryService
     {
         try
         {
-            var query = _db.TblArticleCategories
-                .OrderBy(c => c.SortOrder)
-                .ThenBy(c => c.ArticleCategoryId);
-
-            var paged = await query.ToPagedResultAsync(c => new ArticleCategoryResModel
+            var parameters = new
             {
-                ArticleCategoryId = c.ArticleCategoryId,
-                Name = c.Name,
-                Slug = c.Slug,
-                Description = c.Description,
-                SortOrder = c.SortOrder,
-                CreatedAt = c.CreatedAt,
-                UpdatedAt = c.UpdatedAt
-            }, reqModel, ct);
+                p_search_keyword = (string?)null, // PageRequest doesn't have search keyword
+                p_is_active = (bool?)null,
+                p_page = reqModel.Page,
+                p_page_size = reqModel.PageSize
+            };
+
+            var paged = await _dapperService.GetPagedListAsync<ArticleCategoryResModel>(
+                "fn_get_article_category_list", 
+                parameters, 
+                "ArticleCategoryId", 
+                reqModel);
 
             return Result<PagedResult<ArticleCategoryResModel>>.Success(paged);
         }
         catch (Exception ex)
         {
-            return Result<PagedResult<ArticleCategoryResModel>>.Error(ex, "ME#999", e => _logger.LogError(e, "Error"));
+            return Result<PagedResult<ArticleCategoryResModel>>.Error(ex, "ME#999", e => _logger.LogError(e, "Error retrieving list"));
         }
     }
 
@@ -67,19 +70,9 @@ public class ArticleCategoryService
     {
         try
         {
-            var category = await _db.TblArticleCategories
-                .Where(c => c.ArticleCategoryId == reqModel.ArticleCategoryId)
-                .Select(c => new ArticleCategoryResModel
-                {
-                    ArticleCategoryId = c.ArticleCategoryId,
-                    Name = c.Name,
-                    Slug = c.Slug,
-                    Description = c.Description,
-                    SortOrder = c.SortOrder,
-                    CreatedAt = c.CreatedAt,
-                    UpdatedAt = c.UpdatedAt
-                })
-                .FirstOrDefaultAsync(ct);
+            var category = await _dapperService.GetFirstOrDefaultAsync<ArticleCategoryResModel>(
+                "fn_get_article_category_by_id", 
+                new { p_category_id = reqModel.ArticleCategoryId });
 
             if (category == null)
             {

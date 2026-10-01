@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Magizine.Shared.Services;
 
 namespace Magizine.DataBase;
 
@@ -31,6 +32,7 @@ public static class DependencyInjection
         }
 
         services.AddDbContext<MagizineDbContext>(options => options.UseNpgsql(connectionString));
+        services.AddScoped<DapperService>();
 
         return services;
     }

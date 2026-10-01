@@ -5,6 +5,7 @@ using Magizine.Shared.Models;
 using Magizine.Shared.Models.Author;
 using Magizine.Shared.Models.Paging;
 using Magizine.Shared.Security;
+using Magizine.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -13,6 +14,7 @@ namespace MagizineAdmin.Api.Features.Author;
 public sealed class AuthorService
 {
     private readonly MagizineDbContext _db;
+    private readonly DapperService _dapperService;
     private readonly PasswordHasher _passwordHasher;
     private readonly ILogger<AuthorService> _logger;
 
@@ -21,10 +23,12 @@ public sealed class AuthorService
 
     public AuthorService(
         MagizineDbContext db,
+        DapperService dapperService,
         PasswordHasher passwordHasher,
         ILogger<AuthorService> logger)
     {
         _db = db;
+        _dapperService = dapperService;
         _passwordHasher = passwordHasher;
         _logger = logger;
     }
@@ -33,55 +37,28 @@ public sealed class AuthorService
     {
         try
         {
-            var query = _db.TblAuthors.Where(a => !a.IsDeleted).AsQueryable();
-
-            if (!string.IsNullOrWhiteSpace(req.SearchKeyword))
-            {
-                var keyword = req.SearchKeyword.Trim().ToLower();
-                query = query.Where(a => a.FirstName.ToLower().Contains(keyword) 
-                                      || a.LastName.ToLower().Contains(keyword) 
-                                      || a.Email.ToLower().Contains(keyword));
-            }
-
-            if (req.IsApproved.HasValue)
-            {
-                query = query.Where(a => a.IsApproved == req.IsApproved.Value);
-            }
-
-            if (req.IsActive.HasValue)
-            {
-                query = query.Where(a => a.IsActive == req.IsActive.Value);
-            }
-
             var pageReq = PageRequest.Create(req.Page, req.PageSize);
             
-            var result = await query.ToPagedResultAsync(
-                a => new AuthorResModel
-                {
-                    AuthorId = a.AuthorId,
-                    FirstName = a.FirstName,
-                    LastName = a.LastName,
-                    Email = a.Email,
-                    Title = a.Title,
-                    Bio = a.Bio,
-                    PhotoUrl = a.PhotoUrl,
-                    InstagramUrl = a.InstagramUrl,
-                    TwitterUrl = a.TwitterUrl,
-                    WebsiteUrl = a.WebsiteUrl,
-                    Slug = a.Slug,
-                    IsApproved = a.IsApproved,
-                    IsActive = a.IsActive,
-                    CreatedAt = a.CreatedAt,
-                    UpdatedAt = a.UpdatedAt
-                },
-                pageReq,
-                ct);
+            var parameters = new
+            {
+                p_search_keyword = req.SearchKeyword,
+                p_is_approved = req.IsApproved,
+                p_is_active = req.IsActive,
+                p_page = pageReq.Page,
+                p_page_size = pageReq.PageSize
+            };
 
-            return Result<PagedResult<AuthorResModel>>.Success(result);
+            var paged = await _dapperService.GetPagedListAsync<AuthorResModel>(
+                "fn_get_author_list", 
+                parameters, 
+                "AuthorId", 
+                pageReq);
+
+            return Result<PagedResult<AuthorResModel>>.Success(paged);
         }
         catch (Exception ex)
         {
-            return Result<PagedResult<AuthorResModel>>.Error(ex, "ME#999", e => _logger.LogError(e, "Error retrieving author list"));
+            return Result<PagedResult<AuthorResModel>>.Error(ex, "ME#999", e => _logger.LogError(e, "Error retrieving author list via Dapper"));
         }
     }
 
@@ -89,27 +66,9 @@ public sealed class AuthorService
     {
         try
         {
-            var author = await _db.TblAuthors
-                .Where(a => !a.IsDeleted && a.AuthorId == req.AuthorId)
-                .Select(a => new AuthorResModel
-                {
-                    AuthorId = a.AuthorId,
-                    FirstName = a.FirstName,
-                    LastName = a.LastName,
-                    Email = a.Email,
-                    Title = a.Title,
-                    Bio = a.Bio,
-                    PhotoUrl = a.PhotoUrl,
-                    InstagramUrl = a.InstagramUrl,
-                    TwitterUrl = a.TwitterUrl,
-                    WebsiteUrl = a.WebsiteUrl,
-                    Slug = a.Slug,
-                    IsApproved = a.IsApproved,
-                    IsActive = a.IsActive,
-                    CreatedAt = a.CreatedAt,
-                    UpdatedAt = a.UpdatedAt
-                })
-                .FirstOrDefaultAsync(ct);
+            var author = await _dapperService.GetFirstOrDefaultAsync<AuthorResModel>(
+                "fn_get_author_by_id", 
+                new { p_author_id = req.AuthorId });
 
             if (author == null)
             {
@@ -120,7 +79,7 @@ public sealed class AuthorService
         }
         catch (Exception ex)
         {
-            return Result<AuthorResModel>.Error(ex, "ME#999", e => _logger.LogError(e, "Error retrieving author"));
+            return Result<AuthorResModel>.Error(ex, "ME#999", e => _logger.LogError(e, "Error retrieving author via Dapper"));
         }
     }
 

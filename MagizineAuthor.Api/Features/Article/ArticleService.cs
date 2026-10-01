@@ -4,6 +4,7 @@ using Magizine.DataBase.Paging;
 using Magizine.Shared.Models;
 using Magizine.Shared.Models.Article;
 using Magizine.Shared.Models.Paging;
+using Magizine.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -12,14 +13,16 @@ namespace MagizineAuthor.Api.Features.Article;
 public sealed class ArticleService
 {
     private readonly MagizineDbContext _db;
+    private readonly DapperService _dapperService;
     private readonly ILogger<ArticleService> _logger;
 
     // TODO: Extract from HttpContext when Auth is fully active
     private long AuthorizedAuthorId => 2; // Temporarily hardcoded for Author testing
 
-    public ArticleService(MagizineDbContext db, ILogger<ArticleService> logger)
+    public ArticleService(MagizineDbContext db, DapperService dapperService, ILogger<ArticleService> logger)
     {
         _db = db;
+        _dapperService = dapperService;
         _logger = logger;
     }
 
@@ -27,65 +30,31 @@ public sealed class ArticleService
     {
         try
         {
-            // STRICT FILTER: Only show articles belonging to the logged-in author
-            var query = _db.TblArticles
-                .Include(a => a.ArticleCategory)
-                .Include(a => a.Author)
-                .Where(a => !a.IsDeleted && a.AuthorId == AuthorizedAuthorId)
-                .AsQueryable();
-
-            if (!string.IsNullOrWhiteSpace(req.SearchKeyword))
-            {
-                var keyword = req.SearchKeyword.Trim().ToLower();
-                query = query.Where(a => a.Title.ToLower().Contains(keyword) 
-                                      || (a.SubTitle != null && a.SubTitle.ToLower().Contains(keyword)));
-            }
-
-            if (req.ArticleCategoryId.HasValue && req.ArticleCategoryId.Value > 0)
-            {
-                query = query.Where(a => a.ArticleCategoryId == req.ArticleCategoryId.Value);
-            }
-
-            if (!string.IsNullOrWhiteSpace(req.Status))
-            {
-                query = query.Where(a => a.Status.ToLower() == req.Status.ToLower());
-            }
-
-            // Order by most recently updated/created
-            query = query.OrderByDescending(a => a.UpdatedAt ?? a.CreatedAt);
-
             var pageReq = PageRequest.Create(req.Page, req.PageSize);
+            
+            var parameters = new
+            {
+                p_search_keyword = req.SearchKeyword,
+                p_category_id = req.ArticleCategoryId,
+                p_author_id = AuthorizedAuthorId, // STRICT FILTER
+                p_status = req.Status,
+                p_is_featured = (bool?)null,
+                p_is_spotlight = (bool?)null,
+                p_page = pageReq.Page,
+                p_page_size = pageReq.PageSize
+            };
 
-            var result = await query.ToPagedResultAsync(
-                a => new ArticleResModel
-                {
-                    ArticleId = a.ArticleId,
-                    Title = a.Title,
-                    SubTitle = a.SubTitle,
-                    Slug = a.Slug,
-                    Body = null, // Don't return body in lists for bandwidth
-                    PhotoUrl = a.PhotoUrl,
-                    PhotoCaption = a.PhotoCaption,
-                    PhotoCredit = a.PhotoCredit,
-                    ArticleCategoryId = a.ArticleCategoryId,
-                    CategoryName = a.ArticleCategory.Name,
-                    AuthorId = a.AuthorId,
-                    AuthorName = a.Author.FirstName + " " + a.Author.LastName,
-                    Status = a.Status,
-                    PublishedAt = a.PublishedAt,
-                    IsFeatured = a.IsFeatured,
-                    IsSpotlight = a.IsSpotlight,
-                    CreatedAt = a.CreatedAt,
-                    UpdatedAt = a.UpdatedAt
-                },
-                pageReq,
-                ct);
+            var paged = await _dapperService.GetPagedListAsync<ArticleResModel>(
+                "fn_get_article_list", 
+                parameters, 
+                "ArticleId", 
+                pageReq);
 
-            return Result<PagedResult<ArticleResModel>>.Success(result);
+            return Result<PagedResult<ArticleResModel>>.Success(paged);
         }
         catch (Exception ex)
         {
-            return Result<PagedResult<ArticleResModel>>.Error(ex, "ME#999", e => _logger.LogError(e, "Error retrieving author's article list"));
+            return Result<PagedResult<ArticleResModel>>.Error(ex, "ME#999", e => _logger.LogError(e, "Error retrieving author articles via Dapper"));
         }
     }
 
@@ -93,43 +62,20 @@ public sealed class ArticleService
     {
         try
         {
-            var article = await _db.TblArticles
-                .Include(a => a.ArticleCategory)
-                .Include(a => a.Author)
-                .Where(a => !a.IsDeleted && a.AuthorId == AuthorizedAuthorId && a.ArticleId == req.ArticleId)
-                .Select(a => new ArticleResModel
-                {
-                    ArticleId = a.ArticleId,
-                    Title = a.Title,
-                    SubTitle = a.SubTitle,
-                    Slug = a.Slug,
-                    Body = a.Body,
-                    PhotoUrl = a.PhotoUrl,
-                    PhotoCaption = a.PhotoCaption,
-                    PhotoCredit = a.PhotoCredit,
-                    ArticleCategoryId = a.ArticleCategoryId,
-                    CategoryName = a.ArticleCategory.Name,
-                    AuthorId = a.AuthorId,
-                    AuthorName = a.Author.FirstName + " " + a.Author.LastName,
-                    Status = a.Status,
-                    PublishedAt = a.PublishedAt,
-                    IsFeatured = a.IsFeatured,
-                    IsSpotlight = a.IsSpotlight,
-                    CreatedAt = a.CreatedAt,
-                    UpdatedAt = a.UpdatedAt
-                })
-                .FirstOrDefaultAsync(ct);
+            var article = await _dapperService.GetFirstOrDefaultAsync<ArticleResModel>(
+                "fn_get_article_by_id", 
+                new { p_article_id = req.ArticleId, p_author_id = AuthorizedAuthorId }); // Strict filter
 
             if (article == null)
             {
-                return Result<ArticleResModel>.Error("Article not found or you do not have permission to view it.");
+                return Result<ArticleResModel>.Error("Article not found or access denied.");
             }
 
             return Result<ArticleResModel>.Success(article);
         }
         catch (Exception ex)
         {
-            return Result<ArticleResModel>.Error(ex, "ME#999", e => _logger.LogError(e, "Error retrieving author's article"));
+            return Result<ArticleResModel>.Error(ex, "ME#999", e => _logger.LogError(e, "Error retrieving author article via Dapper"));
         }
     }
 

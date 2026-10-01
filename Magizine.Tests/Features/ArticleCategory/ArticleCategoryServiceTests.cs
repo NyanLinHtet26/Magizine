@@ -17,6 +17,7 @@ public class ArticleCategoryServiceTests : IDisposable
     private readonly MagizineDbContext _dbContext;
     private readonly Mock<ILogger<ArticleCategoryService>> _mockLogger;
     private readonly Mock<IHttpContextAccessor> _mockHttpContextAccessor;
+    private readonly Mock<Magizine.Shared.Services.DapperService> _mockDapperService;
     private readonly ArticleCategoryService _service;
 
     public ArticleCategoryServiceTests()
@@ -28,13 +29,14 @@ public class ArticleCategoryServiceTests : IDisposable
         _dbContext = new MagizineDbContext(options);
         _mockLogger = new Mock<ILogger<ArticleCategoryService>>();
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+        _mockDapperService = new Mock<Magizine.Shared.Services.DapperService>();
 
         var context = new DefaultHttpContext();
         var claims = new[] { new Claim(MagizineClaims.Subject, "123") };
         context.User = new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth"));
         _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(context);
 
-        _service = new ArticleCategoryService(_dbContext, _mockLogger.Object, _mockHttpContextAccessor.Object);
+        _service = new ArticleCategoryService(_dbContext, _mockDapperService.Object, _mockLogger.Object, _mockHttpContextAccessor.Object);
     }
 
     public void Dispose()
@@ -73,7 +75,7 @@ public class ArticleCategoryServiceTests : IDisposable
         mockDb.Setup(d => d.SaveChangesAsync(It.IsAny<CancellationToken>()))
               .ThrowsAsync(new DbUpdateException("Duplicate", new Npgsql.PostgresException("23505", "error", "error", "23505")));
               
-        var serviceWithMockDb = new ArticleCategoryService(mockDb.Object, _mockLogger.Object, _mockHttpContextAccessor.Object);
+        var serviceWithMockDb = new ArticleCategoryService(mockDb.Object, _mockDapperService.Object, _mockLogger.Object, _mockHttpContextAccessor.Object);
         
         var req = new CreateArticleCategoryReqModel { Name = "Tech News" };
         var result = await serviceWithMockDb.CreateArticleCategory(req);

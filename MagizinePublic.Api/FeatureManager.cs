@@ -1,6 +1,7 @@
 using Magizine.DataBase;
 using Magizine.Shared.Security;
 using MagizinePublic.Api.Features.ArticleCategory;
+using MagizinePublic.Api.Features.Article;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
 
@@ -105,6 +106,7 @@ public static class FeatureManager
     private static WebApplicationBuilder AddFeatureServices(this WebApplicationBuilder builder)
     {
         builder.Services.AddScoped<ArticleCategoryService>();
+        builder.Services.AddScoped<ArticleService>();
 
         return builder;
     }

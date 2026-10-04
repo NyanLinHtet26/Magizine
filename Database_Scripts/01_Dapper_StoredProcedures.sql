@@ -24,10 +24,9 @@ DECLARE
     v_total BIGINT;
 BEGIN
     SELECT COUNT(*) INTO v_total
-    FROM "TblArticleCategories" c
+    FROM "Tbl_ArticleCategory" c
     WHERE c."IsDeleted" = FALSE
-      AND (p_search_keyword IS NULL OR c."Name" ILIKE '%' || p_search_keyword || '%')
-      AND (p_is_active IS NULL OR c."IsActive" = p_is_active);
+      AND (p_search_keyword IS NULL OR c."Name" ILIKE '%' || p_search_keyword || '%');
 
     RETURN QUERY
     SELECT 
@@ -39,10 +38,9 @@ BEGIN
         c."SortOrder",
         c."CreatedAt",
         c."UpdatedAt"
-    FROM "TblArticleCategories" c
+    FROM "Tbl_ArticleCategory" c
     WHERE c."IsDeleted" = FALSE
       AND (p_search_keyword IS NULL OR c."Name" ILIKE '%' || p_search_keyword || '%')
-      AND (p_is_active IS NULL OR c."IsActive" = p_is_active)
     ORDER BY c."SortOrder" ASC
     OFFSET (p_page - 1) * p_page_size
     LIMIT p_page_size;
@@ -80,7 +78,7 @@ DECLARE
     v_total BIGINT;
 BEGIN
     SELECT COUNT(*) INTO v_total
-    FROM "TblAuthors" a
+    FROM "Tbl_Author" a
     WHERE a."IsDeleted" = FALSE
       AND (p_search_keyword IS NULL OR a."FirstName" ILIKE '%' || p_search_keyword || '%' OR a."LastName" ILIKE '%' || p_search_keyword || '%' OR a."Email" ILIKE '%' || p_search_keyword || '%')
       AND (p_is_approved IS NULL OR a."IsApproved" = p_is_approved)
@@ -104,7 +102,7 @@ BEGIN
         a."IsActive",
         a."CreatedAt",
         a."UpdatedAt"
-    FROM "TblAuthors" a
+    FROM "Tbl_Author" a
     WHERE a."IsDeleted" = FALSE
       AND (p_search_keyword IS NULL OR a."FirstName" ILIKE '%' || p_search_keyword || '%' OR a."LastName" ILIKE '%' || p_search_keyword || '%' OR a."Email" ILIKE '%' || p_search_keyword || '%')
       AND (p_is_approved IS NULL OR a."IsApproved" = p_is_approved)
@@ -152,7 +150,7 @@ DECLARE
     v_total BIGINT;
 BEGIN
     SELECT COUNT(*) INTO v_total
-    FROM "TblArticles" ar
+    FROM "Tbl_Article" ar
     WHERE ar."IsDeleted" = FALSE
       AND (p_search_keyword IS NULL OR ar."Title" ILIKE '%' || p_search_keyword || '%' OR ar."SubTitle" ILIKE '%' || p_search_keyword || '%')
       AND (p_category_id IS NULL OR p_category_id <= 0 OR ar."ArticleCategoryId" = p_category_id)
@@ -182,9 +180,9 @@ BEGIN
         ar."IsSpotlight",
         ar."CreatedAt",
         ar."UpdatedAt"
-    FROM "TblArticles" ar
-    INNER JOIN "TblArticleCategories" c ON ar."ArticleCategoryId" = c."ArticleCategoryId"
-    INNER JOIN "TblAuthors" a ON ar."AuthorId" = a."AuthorId"
+    FROM "Tbl_Article" ar
+    INNER JOIN "Tbl_ArticleCategory" c ON ar."ArticleCategoryId" = c."ArticleCategoryId"
+    INNER JOIN "Tbl_Author" a ON ar."AuthorId" = a."AuthorId"
     WHERE ar."IsDeleted" = FALSE
       AND (p_search_keyword IS NULL OR ar."Title" ILIKE '%' || p_search_keyword || '%' OR ar."SubTitle" ILIKE '%' || p_search_keyword || '%')
       AND (p_category_id IS NULL OR p_category_id <= 0 OR ar."ArticleCategoryId" = p_category_id)

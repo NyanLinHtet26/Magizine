@@ -29,7 +29,7 @@ DECLARE
     v_total BIGINT;
 BEGIN
     SELECT COUNT(*) INTO v_total
-    FROM "TblRequestArticles" r
+    FROM "Tbl_RequestArticle" r
     WHERE r."IsDeleted" = FALSE
       AND (p_search_keyword IS NULL OR r."PitcherName" ILIKE '%' || p_search_keyword || '%' OR r."PitcherEmail" ILIKE '%' || p_search_keyword || '%')
       AND (p_status IS NULL OR p_status = '' OR r."Status" ILIKE p_status);
@@ -50,7 +50,7 @@ BEGIN
         r."AdminNotes",
         r."CreatedAt",
         r."UpdatedAt"
-    FROM "TblRequestArticles" r
+    FROM "Tbl_RequestArticle" r
     WHERE r."IsDeleted" = FALSE
       AND (p_search_keyword IS NULL OR r."PitcherName" ILIKE '%' || p_search_keyword || '%' OR r."PitcherEmail" ILIKE '%' || p_search_keyword || '%')
       AND (p_status IS NULL OR p_status = '' OR r."Status" ILIKE p_status)
@@ -96,7 +96,7 @@ BEGIN
         r."AdminNotes",
         r."CreatedAt",
         r."UpdatedAt"
-    FROM "TblRequestArticles" r
+    FROM "Tbl_RequestArticle" r
     WHERE r."RequestArticleId" = p_request_id
       AND r."IsDeleted" = FALSE;
 END;

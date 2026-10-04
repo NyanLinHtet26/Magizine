@@ -12,7 +12,6 @@ RETURNS TABLE (
     "Name" VARCHAR,
     "Slug" VARCHAR,
     "Description" VARCHAR,
-    "IsActive" BOOLEAN,
     "SortOrder" INT,
     "CreatedAt" TIMESTAMP,
     "UpdatedAt" TIMESTAMP
@@ -24,11 +23,10 @@ BEGIN
         c."Name",
         c."Slug",
         c."Description",
-        c."IsActive",
         c."SortOrder",
         c."CreatedAt",
         c."UpdatedAt"
-    FROM "TblArticleCategories" c
+    FROM "Tbl_ArticleCategory" c
     WHERE c."ArticleCategoryId" = p_category_id
       AND c."IsDeleted" = FALSE;
 END;
@@ -45,7 +43,6 @@ RETURNS TABLE (
     "Name" VARCHAR,
     "Slug" VARCHAR,
     "Description" VARCHAR,
-    "IsActive" BOOLEAN,
     "SortOrder" INT,
     "CreatedAt" TIMESTAMP,
     "UpdatedAt" TIMESTAMP
@@ -57,11 +54,10 @@ BEGIN
         c."Name",
         c."Slug",
         c."Description",
-        c."IsActive",
         c."SortOrder",
         c."CreatedAt",
         c."UpdatedAt"
-    FROM "TblArticleCategories" c
+    FROM "Tbl_ArticleCategory" c
     WHERE c."Slug" = p_slug
       AND c."IsDeleted" = FALSE;
 END;
@@ -108,7 +104,7 @@ BEGIN
         a."IsActive",
         a."CreatedAt",
         a."UpdatedAt"
-    FROM "TblAuthors" a
+    FROM "Tbl_Author" a
     WHERE a."AuthorId" = p_author_id
       AND a."IsDeleted" = FALSE;
 END;
@@ -162,9 +158,9 @@ BEGIN
         ar."IsSpotlight",
         ar."CreatedAt",
         ar."UpdatedAt"
-    FROM "TblArticles" ar
-    INNER JOIN "TblArticleCategories" c ON ar."ArticleCategoryId" = c."ArticleCategoryId"
-    INNER JOIN "TblAuthors" a ON ar."AuthorId" = a."AuthorId"
+    FROM "Tbl_Article" ar
+    INNER JOIN "Tbl_ArticleCategory" c ON ar."ArticleCategoryId" = c."ArticleCategoryId"
+    INNER JOIN "Tbl_Author" a ON ar."AuthorId" = a."AuthorId"
     WHERE ar."ArticleId" = p_article_id
       AND ar."IsDeleted" = FALSE
       AND (p_author_id IS NULL OR ar."AuthorId" = p_author_id);
@@ -218,9 +214,9 @@ BEGIN
         ar."IsSpotlight",
         ar."CreatedAt",
         ar."UpdatedAt"
-    FROM "TblArticles" ar
-    INNER JOIN "TblArticleCategories" c ON ar."ArticleCategoryId" = c."ArticleCategoryId"
-    INNER JOIN "TblAuthors" a ON ar."AuthorId" = a."AuthorId"
+    FROM "Tbl_Article" ar
+    INNER JOIN "Tbl_ArticleCategory" c ON ar."ArticleCategoryId" = c."ArticleCategoryId"
+    INNER JOIN "Tbl_Author" a ON ar."AuthorId" = a."AuthorId"
     WHERE ar."Slug" = p_slug
       AND ar."IsDeleted" = FALSE;
 END;

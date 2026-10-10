@@ -1,9 +1,10 @@
 using Magizine.DataBase;
 using Magizine.DataBase.Models;
-using Magizine.DataBase.Paging;
+using Magizine.Shared.Enums;
 using Magizine.Shared.Models;
 using Magizine.Shared.Models.Article;
 using Magizine.Shared.Models.Paging;
+using Magizine.Shared.Models.RequestArticle;
 using Magizine.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -34,75 +35,85 @@ public sealed class ArticleService
         _logger = logger;
     }
 
-    public async Task<Result<PagedResult<ArticleResModel>>> GetMyArticlesAsync(ArticleListReqModel req, CancellationToken ct = default)
+    public async Task<Result<PagedResult<RequestArticleResModel>>> GetMyArticlesAsync(RequestArticleListReqModel req, CancellationToken ct = default)
     {
         try
         {
             var pageReq = PageRequest.Create(req.Page, req.PageSize);
-            
+
             var parameters = new
             {
                 p_search_keyword = req.SearchKeyword,
                 p_category_id = req.ArticleCategoryId,
-                p_author_id = AuthorizedAuthorId, // STRICT FILTER
-                p_status = req.Status,
-                p_is_featured = (bool?)null,
-                p_is_spotlight = (bool?)null,
+                p_author_id = AuthorizedAuthorId, // STRICT OWNERSHIP FILTER
+                p_status = NormalizeAuthorStatusFilter(req.Status),
+                p_exclude_draft = false,
                 p_page = pageReq.Page,
                 p_page_size = pageReq.PageSize
             };
 
-            var paged = await _dapperService.GetPagedListAsync<ArticleResModel>(
-                "fn_get_article_list", 
-                parameters, 
-                "ArticleId", 
+            var paged = await _dapperService.GetPagedListAsync<RequestArticleResModel>(
+                "fn_get_request_article_list",
+                parameters,
+                "RequestArticleId",
                 pageReq);
 
-            return Result<PagedResult<ArticleResModel>>.Success(paged);
+            return Result<PagedResult<RequestArticleResModel>>.Success(paged);
         }
         catch (Exception ex)
         {
-            return Result<PagedResult<ArticleResModel>>.Error(ex, "ME#999", e => _logger.LogError(e, "Error retrieving author articles via Dapper"));
+            return Result<PagedResult<RequestArticleResModel>>.Error(ex, "ME#999", e => _logger.LogError(e, "Error retrieving author articles via Dapper"));
         }
     }
 
-    public async Task<Result<ArticleResModel>> GetMyArticleByIdAsync(ArticleDetailReqModel req, CancellationToken ct = default)
+    public async Task<Result<RequestArticleResModel>> GetMyArticleByIdAsync(RequestArticleDetailReqModel req, CancellationToken ct = default)
     {
         try
         {
-            var article = await _dapperService.GetFirstOrDefaultAsync<ArticleResModel>(
-                "fn_get_article_by_id", 
-                new { p_article_id = req.ArticleId, p_author_id = AuthorizedAuthorId }); // Strict filter
+            var requestArticle = await _dapperService.GetFirstOrDefaultAsync<RequestArticleResModel>(
+                "fn_get_request_article_by_id",
+                new
+                {
+                    p_request_id = req.RequestArticleId,
+                    p_author_id = AuthorizedAuthorId,
+                    p_exclude_draft = false
+                });
 
-            if (article == null)
+            if (requestArticle == null)
             {
-                return Result<ArticleResModel>.Error("Article not found or access denied.");
+                return Result<RequestArticleResModel>.Error("Article not found or access denied.");
             }
 
-            article.Photos = await _dapperService.GetListAsync<ArticlePhotoResModel>(
-                "fn_get_article_photos_by_article_id",
-                new { p_article_id = article.ArticleId });
+            requestArticle.Photos = await _dapperService.GetListAsync<ArticlePhotoResModel>(
+                "fn_get_article_photos_by_request_id",
+                new { p_request_id = requestArticle.RequestArticleId });
 
-            return Result<ArticleResModel>.Success(article);
+            return Result<RequestArticleResModel>.Success(requestArticle);
         }
         catch (Exception ex)
         {
-            return Result<ArticleResModel>.Error(ex, "ME#999", e => _logger.LogError(e, "Error retrieving author article via Dapper"));
+            return Result<RequestArticleResModel>.Error(ex, "ME#999", e => _logger.LogError(e, "Error retrieving author article via Dapper"));
         }
     }
 
-    public async Task<Result<ArticleResModel>> CreateDraftAsync(CreateArticleReqModel req, CancellationToken ct = default)
+    public async Task<Result<RequestArticleResModel>> CreateArticleAsync(CreateRequestArticleReqModel req, CancellationToken ct = default)
     {
         var newlySavedFiles = new List<string>();
         try
         {
+            var normalizedStatus = NormalizeAuthorInputStatus(req.Status);
+            if (normalizedStatus is null)
+            {
+                return Result<RequestArticleResModel>.Error("Status must be either 'Draft' or 'Submitted'.");
+            }
+
             var isCategoryValid = await _db.TblArticleCategories.AnyAsync(c => c.ArticleCategoryId == req.ArticleCategoryId && !c.IsDeleted, ct);
             if (!isCategoryValid)
-                return Result<ArticleResModel>.Error("Selected Category does not exist.");
+                return Result<RequestArticleResModel>.Error("Selected Category does not exist.");
 
             if (req.GalleryItems is { Count: > MaxGalleryPhotosPerRequest })
             {
-                return Result<ArticleResModel>.Error($"Maximum {MaxGalleryPhotosPerRequest} gallery photos are allowed per request.");
+                return Result<RequestArticleResModel>.Error($"Maximum {MaxGalleryPhotosPerRequest} gallery photos are allowed per request.");
             }
 
             var coverPhotoUrl = req.PhotoUrl;
@@ -111,7 +122,7 @@ public sealed class ArticleService
                 var coverUpload = await _fileStorage.SavePhotoAsync(req.CoverPhoto, "articles", ct);
                 if (coverUpload.IsError)
                 {
-                    return Result<ArticleResModel>.Error(coverUpload.RespCode, coverUpload.RespDesp ?? "Invalid cover photo.");
+                    return Result<RequestArticleResModel>.Error(coverUpload.RespCode, coverUpload.RespDesp ?? "Invalid cover photo.");
                 }
 
                 coverPhotoUrl = coverUpload.Data!;
@@ -119,18 +130,18 @@ public sealed class ArticleService
             }
 
             var slug = Slugify(req.Title);
-            var isSlugTaken = await _db.TblArticles.AnyAsync(a => a.Slug == slug && !a.IsDeleted, ct);
+            var isSlugTaken = await _db.TblRequestArticles.AnyAsync(r => r.Slug == slug && !r.IsDeleted, ct);
             if (isSlugTaken)
             {
-                slug = $"{slug}-{Guid.NewGuid().ToString().Substring(0, 5)}";
+                slug = $"{slug}-{Guid.NewGuid().ToString()[..5]}";
             }
 
-            var articleId = Ulid.NewUlid().ToString();
+            var requestArticleId = Ulid.NewUlid().ToString();
             var now = DateTimeOffset.UtcNow;
 
-            var article = new TblArticle
+            var requestArticle = new TblRequestArticle
             {
-                ArticleId = articleId,
+                RequestArticleId = requestArticleId,
                 Title = req.Title.Trim(),
                 SubTitle = req.SubTitle?.Trim(),
                 Slug = slug,
@@ -139,15 +150,9 @@ public sealed class ArticleService
                 PhotoCaption = req.PhotoCaption,
                 PhotoCredit = req.PhotoCredit,
                 ArticleCategoryId = req.ArticleCategoryId,
-                
-                // SECURITY: Ignore whatever AuthorId the frontend sent. Force it to the logged-in user.
                 AuthorId = AuthorizedAuthorId,
-                
-                // SECURITY: Ignore whatever Status the frontend sent. Force it to Draft.
-                Status = "Draft",
-                IsFeatured = false,
-                IsSpotlight = false,
-                
+                Status = normalizedStatus,
+                SubmittedAt = normalizedStatus == EnumRequestArticleStatus.Submitted.ToDbString() ? now : null,
                 CreatedAt = now
             };
 
@@ -161,14 +166,14 @@ public sealed class ArticleService
                     if (photoUpload.IsError)
                     {
                         await _fileStorage.DeletePhotosAsync(newlySavedFiles, CancellationToken.None);
-                        return Result<ArticleResModel>.Error(photoUpload.RespCode, $"Gallery photo #{i + 1}: {photoUpload.RespDesp}");
+                        return Result<RequestArticleResModel>.Error(photoUpload.RespCode, $"Gallery photo #{i + 1}: {photoUpload.RespDesp}");
                     }
 
                     newlySavedFiles.Add(photoUpload.Data!);
                     photoEntities.Add(new TblArticlePhoto
                     {
                         ArticlePhotoId = Ulid.NewUlid().ToString(),
-                        ArticleId = articleId,
+                        RequestArticleId = requestArticleId,
                         PhotoUrl = photoUpload.Data!,
                         Caption = item.Caption?.Trim(),
                         Credit = item.Credit?.Trim(),
@@ -178,7 +183,7 @@ public sealed class ArticleService
                 }
             }
 
-            _db.TblArticles.Add(article);
+            _db.TblRequestArticles.Add(requestArticle);
             if (photoEntities.Count > 0)
             {
                 _db.TblArticlePhotos.AddRange(photoEntities);
@@ -186,7 +191,7 @@ public sealed class ArticleService
 
             await _db.SaveChangesAsync(ct);
 
-            return await GetMyArticleByIdAsync(new ArticleDetailReqModel { ArticleId = article.ArticleId }, ct);
+            return await GetMyArticleByIdAsync(new RequestArticleDetailReqModel { RequestArticleId = requestArticleId }, ct);
         }
         catch (DbUpdateException ex) when (IsUniqueViolation(ex))
         {
@@ -194,7 +199,7 @@ public sealed class ArticleService
             {
                 await _fileStorage.DeletePhotosAsync(newlySavedFiles, CancellationToken.None);
             }
-            return Result<ArticleResModel>.Error("An article with this slug already exists.");
+            return Result<RequestArticleResModel>.Error("An article with this slug already exists.");
         }
         catch (Exception ex)
         {
@@ -202,32 +207,48 @@ public sealed class ArticleService
             {
                 await _fileStorage.DeletePhotosAsync(newlySavedFiles, CancellationToken.None);
             }
-            return Result<ArticleResModel>.Error(ex, "ME#999", e => _logger.LogError(e, "Error creating draft"));
+            return Result<RequestArticleResModel>.Error(ex, "ME#999", e => _logger.LogError(e, "Error creating article in Tbl_RequestArticle"));
         }
     }
 
-    public async Task<Result<ArticleResModel>> UpdateDraftAsync(UpdateArticleReqModel req, CancellationToken ct = default)
+    public async Task<Result<RequestArticleResModel>> UpdateArticleAsync(UpdateRequestArticleReqModel req, CancellationToken ct = default)
     {
         var newlySavedFiles = new List<string>();
         try
         {
-            var article = await _db.TblArticles
-                .FirstOrDefaultAsync(a => a.ArticleId == req.ArticleId && a.AuthorId == AuthorizedAuthorId && !a.IsDeleted, ct);
+            var requestArticle = await _db.TblRequestArticles
+                .FirstOrDefaultAsync(r => r.RequestArticleId == req.RequestArticleId && r.AuthorId == AuthorizedAuthorId && !r.IsDeleted, ct);
 
-            if (article == null)
+            if (requestArticle == null)
             {
-                return Result<ArticleResModel>.Error("Article not found or you do not have permission to edit it.");
+                return Result<RequestArticleResModel>.Error("Article not found or you do not have permission to edit it.");
             }
 
-            if (article.ArticleCategoryId != req.ArticleCategoryId)
+            // LOCK CHECK: Once Approved by Admin, the article is published in Tbl_Article and locked.
+            if (requestArticle.Status == EnumRequestArticleStatus.Approved.ToDbString())
+            {
+                return Result<RequestArticleResModel>.Error("This article has already been approved and published, so it is locked and cannot be edited.");
+            }
+
+            string? targetStatus = null;
+            if (!string.IsNullOrWhiteSpace(req.Status))
+            {
+                targetStatus = NormalizeAuthorInputStatus(req.Status);
+                if (targetStatus is null)
+                {
+                    return Result<RequestArticleResModel>.Error("Status must be either 'Draft' or 'Submitted'.");
+                }
+            }
+
+            if (requestArticle.ArticleCategoryId != req.ArticleCategoryId)
             {
                 var isCategoryValid = await _db.TblArticleCategories.AnyAsync(c => c.ArticleCategoryId == req.ArticleCategoryId && !c.IsDeleted, ct);
-                if (!isCategoryValid) return Result<ArticleResModel>.Error("Selected Category does not exist.");
+                if (!isCategoryValid) return Result<RequestArticleResModel>.Error("Selected Category does not exist.");
             }
 
             if (req.NewGalleryItems is { Count: > MaxGalleryPhotosPerRequest })
             {
-                return Result<ArticleResModel>.Error($"Maximum {MaxGalleryPhotosPerRequest} gallery photos are allowed per request.");
+                return Result<RequestArticleResModel>.Error($"Maximum {MaxGalleryPhotosPerRequest} gallery photos are allowed per request.");
             }
 
             var now = DateTimeOffset.UtcNow;
@@ -237,21 +258,21 @@ public sealed class ArticleService
                 var coverUpload = await _fileStorage.SavePhotoAsync(req.CoverPhoto, "articles", ct);
                 if (coverUpload.IsError)
                 {
-                    return Result<ArticleResModel>.Error(coverUpload.RespCode, coverUpload.RespDesp ?? "Invalid cover photo.");
+                    return Result<RequestArticleResModel>.Error(coverUpload.RespCode, coverUpload.RespDesp ?? "Invalid cover photo.");
                 }
 
                 newlySavedFiles.Add(coverUpload.Data!);
-                article.PhotoUrl = coverUpload.Data!;
+                requestArticle.PhotoUrl = coverUpload.Data!;
             }
             else if (!string.IsNullOrWhiteSpace(req.PhotoUrl))
             {
-                article.PhotoUrl = req.PhotoUrl;
+                requestArticle.PhotoUrl = req.PhotoUrl;
             }
 
             if (req.RemoveArticlePhotoIds is { Count: > 0 })
             {
                 var photosToRemove = await _db.TblArticlePhotos
-                    .Where(p => p.ArticleId == article.ArticleId && req.RemoveArticlePhotoIds.Contains(p.ArticlePhotoId) && !p.IsDeleted)
+                    .Where(p => p.RequestArticleId == requestArticle.RequestArticleId && req.RemoveArticlePhotoIds.Contains(p.ArticlePhotoId) && !p.IsDeleted)
                     .ToListAsync(ct);
 
                 foreach (var photo in photosToRemove)
@@ -271,14 +292,14 @@ public sealed class ArticleService
                     if (photoUpload.IsError)
                     {
                         await _fileStorage.DeletePhotosAsync(newlySavedFiles, CancellationToken.None);
-                        return Result<ArticleResModel>.Error(photoUpload.RespCode, $"New gallery photo #{i + 1}: {photoUpload.RespDesp}");
+                        return Result<RequestArticleResModel>.Error(photoUpload.RespCode, $"New gallery photo #{i + 1}: {photoUpload.RespDesp}");
                     }
 
                     newlySavedFiles.Add(photoUpload.Data!);
                     _db.TblArticlePhotos.Add(new TblArticlePhoto
                     {
                         ArticlePhotoId = Ulid.NewUlid().ToString(),
-                        ArticleId = article.ArticleId,
+                        RequestArticleId = requestArticle.RequestArticleId,
                         PhotoUrl = photoUpload.Data!,
                         Caption = item.Caption?.Trim(),
                         Credit = item.Credit?.Trim(),
@@ -288,17 +309,33 @@ public sealed class ArticleService
                 }
             }
 
-            article.Title = req.Title.Trim();
-            article.SubTitle = req.SubTitle?.Trim();
-            article.Body = req.Body;
-            article.PhotoCaption = req.PhotoCaption;
-            article.PhotoCredit = req.PhotoCredit;
-            article.ArticleCategoryId = req.ArticleCategoryId;
-            article.UpdatedAt = now;
+            requestArticle.Title = req.Title.Trim();
+            requestArticle.SubTitle = req.SubTitle?.Trim();
+            requestArticle.Body = req.Body;
+            requestArticle.PhotoCaption = req.PhotoCaption;
+            requestArticle.PhotoCredit = req.PhotoCredit;
+            requestArticle.ArticleCategoryId = req.ArticleCategoryId;
+
+            if (targetStatus is not null)
+            {
+                if (targetStatus == EnumRequestArticleStatus.Submitted.ToDbString() &&
+                    requestArticle.Status != EnumRequestArticleStatus.Submitted.ToDbString())
+                {
+                    requestArticle.SubmittedAt = now;
+                }
+                else if (targetStatus == EnumRequestArticleStatus.Draft.ToDbString())
+                {
+                    requestArticle.SubmittedAt = null;
+                }
+
+                requestArticle.Status = targetStatus;
+            }
+
+            requestArticle.UpdatedAt = now;
 
             await _db.SaveChangesAsync(ct);
 
-            return await GetMyArticleByIdAsync(new ArticleDetailReqModel { ArticleId = article.ArticleId }, ct);
+            return await GetMyArticleByIdAsync(new RequestArticleDetailReqModel { RequestArticleId = requestArticle.RequestArticleId }, ct);
         }
         catch (Exception ex)
         {
@@ -306,38 +343,109 @@ public sealed class ArticleService
             {
                 await _fileStorage.DeletePhotosAsync(newlySavedFiles, CancellationToken.None);
             }
-            return Result<ArticleResModel>.Error(ex, "ME#999", e => _logger.LogError(e, "Error updating draft"));
+            return Result<RequestArticleResModel>.Error(ex, "ME#999", e => _logger.LogError(e, "Error updating article in Tbl_RequestArticle"));
         }
     }
 
-    public async Task<Result<string>> SubmitForReviewAsync(ArticleDetailReqModel req, CancellationToken ct = default)
+    public async Task<Result<string>> SubmitForReviewAsync(RequestArticleDetailReqModel req, CancellationToken ct = default)
     {
         try
         {
-            var article = await _db.TblArticles
-                .FirstOrDefaultAsync(a => a.ArticleId == req.ArticleId && a.AuthorId == AuthorizedAuthorId && !a.IsDeleted, ct);
+            var requestArticle = await _db.TblRequestArticles
+                .FirstOrDefaultAsync(r => r.RequestArticleId == req.RequestArticleId && r.AuthorId == AuthorizedAuthorId && !r.IsDeleted, ct);
 
-            if (article == null)
+            if (requestArticle == null)
             {
                 return Result<string>.Error("Article not found or you do not have permission.");
             }
 
-            if (article.Status != "Draft" && article.Status != "Rejected")
+            if (requestArticle.Status == EnumRequestArticleStatus.Approved.ToDbString())
             {
-                return Result<string>.Error($"Article is currently {article.Status} and cannot be submitted.");
+                return Result<string>.Error("This article has already been approved and published, so it is locked.");
             }
 
-            // Change status to Pending so Admin can see it
-            article.Status = "Pending";
-            article.UpdatedAt = DateTimeOffset.UtcNow;
+            var now = DateTimeOffset.UtcNow;
+            requestArticle.Status = EnumRequestArticleStatus.Submitted.ToDbString();
+            requestArticle.SubmittedAt = now;
+            requestArticle.UpdatedAt = now;
 
             await _db.SaveChangesAsync(ct);
-            return Result<string>.Success("Article successfully submitted for review.");
+            return Result<string>.Success("Article successfully submitted for Admin review.");
         }
         catch (Exception ex)
         {
             return Result<string>.Error(ex, "ME#999", e => _logger.LogError(e, "Error submitting article for review"));
         }
+    }
+
+    public async Task<Result<string>> DeleteMyArticleAsync(RequestArticleDetailReqModel req, CancellationToken ct = default)
+    {
+        try
+        {
+            var requestArticle = await _db.TblRequestArticles
+                .FirstOrDefaultAsync(r => r.RequestArticleId == req.RequestArticleId && r.AuthorId == AuthorizedAuthorId && !r.IsDeleted, ct);
+
+            if (requestArticle == null)
+            {
+                return Result<string>.Error("Article not found or you do not have permission.");
+            }
+
+            if (requestArticle.Status == EnumRequestArticleStatus.Approved.ToDbString())
+            {
+                return Result<string>.Error("This article has already been approved and published, so it is locked and cannot be deleted.");
+            }
+
+            var now = DateTimeOffset.UtcNow;
+            requestArticle.IsDeleted = true;
+            requestArticle.DeletedAt = now;
+            requestArticle.UpdatedAt = now;
+
+            var galleryPhotos = await _db.TblArticlePhotos
+                .Where(p => p.RequestArticleId == requestArticle.RequestArticleId && !p.IsDeleted)
+                .ToListAsync(ct);
+
+            foreach (var photo in galleryPhotos)
+            {
+                photo.IsDeleted = true;
+                photo.DeletedAt = now;
+                photo.UpdatedAt = now;
+            }
+
+            await _db.SaveChangesAsync(ct);
+            return Result<string>.Success("Article deleted successfully.");
+        }
+        catch (Exception ex)
+        {
+            return Result<string>.Error(ex, "ME#999", e => _logger.LogError(e, "Error deleting author article"));
+        }
+    }
+
+    private static string? NormalizeAuthorInputStatus(string? status)
+    {
+        if (string.IsNullOrWhiteSpace(status))
+            return EnumRequestArticleStatus.Draft.ToDbString();
+
+        var trimmed = status.Trim();
+        if (trimmed.Equals("Draft", StringComparison.OrdinalIgnoreCase))
+            return EnumRequestArticleStatus.Draft.ToDbString();
+
+        if (trimmed.Equals("Submit", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("Submitted", StringComparison.OrdinalIgnoreCase))
+            return EnumRequestArticleStatus.Submitted.ToDbString();
+
+        return null;
+    }
+
+    private static string? NormalizeAuthorStatusFilter(string? status)
+    {
+        if (string.IsNullOrWhiteSpace(status))
+            return null;
+
+        var trimmed = status.Trim();
+        if (trimmed.Equals("Submit", StringComparison.OrdinalIgnoreCase))
+            return EnumRequestArticleStatus.Submitted.ToDbString();
+
+        return trimmed;
     }
 
     private static bool IsUniqueViolation(DbUpdateException ex)

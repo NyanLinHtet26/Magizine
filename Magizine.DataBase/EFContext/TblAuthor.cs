@@ -48,4 +48,6 @@ public partial class TblAuthor
     public virtual ICollection<TblArticle> TblArticles { get; set; } = new List<TblArticle>();
 
     public virtual ICollection<TblNotification> TblNotifications { get; set; } = new List<TblNotification>();
+
+    public virtual ICollection<TblRequestArticle> TblRequestArticles { get; set; } = new List<TblRequestArticle>();
 }

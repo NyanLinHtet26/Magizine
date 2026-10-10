@@ -37,7 +37,7 @@ public partial class AppDbContext : DbContext
     {
         modelBuilder.Entity<TblAboutAndAppDatum>(entity =>
         {
-            entity.HasKey(e => e.AppDataId).HasName("PK__Tbl_Abou__4E459D2F59E60C47");
+            entity.HasKey(e => e.AppDataId).HasName("PK__Tbl_Abou__4E459D2F3B499A0A");
 
             entity.ToTable("Tbl_AboutAndAppData");
 
@@ -60,7 +60,7 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<TblAd>(entity =>
         {
-            entity.HasKey(e => e.AdId).HasName("PK__Tbl_Ads__7130D5AE385A3704");
+            entity.HasKey(e => e.AdId).HasName("PK__Tbl_Ads__7130D5AEDA122729");
 
             entity.ToTable("Tbl_Ads");
 
@@ -95,7 +95,7 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<TblAdmin>(entity =>
         {
-            entity.HasKey(e => e.AdminId).HasName("PK__Tbl_Admi__719FE488E4A03835");
+            entity.HasKey(e => e.AdminId).HasName("PK__Tbl_Admi__719FE488946908E5");
 
             entity.ToTable("Tbl_Admin");
 
@@ -129,7 +129,7 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<TblArticle>(entity =>
         {
-            entity.HasKey(e => e.ArticleId).HasName("PK__Tbl_Arti__9C6270E88FEBE18A");
+            entity.HasKey(e => e.ArticleId).HasName("PK__Tbl_Arti__9C6270E8ABD2F021");
 
             entity.ToTable("Tbl_Article");
 
@@ -185,7 +185,7 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<TblArticleCategory>(entity =>
         {
-            entity.HasKey(e => e.ArticleCategoryId).HasName("PK__Tbl_Arti__E0B60943276CC4BB");
+            entity.HasKey(e => e.ArticleCategoryId).HasName("PK__Tbl_Arti__E0B6094314D46408");
 
             entity.ToTable("Tbl_ArticleCategory");
 
@@ -215,13 +215,15 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<TblArticlePhoto>(entity =>
         {
-            entity.HasKey(e => e.ArticlePhotoId).HasName("PK__Tbl_Arti__8083531A3B18E2AE");
+            entity.HasKey(e => e.ArticlePhotoId).HasName("PK__Tbl_Arti__8083531A0FB1A6A2");
 
             entity.ToTable("Tbl_ArticlePhoto");
 
-            entity.HasIndex(e => new { e.ArticleId, e.SortOrder }, "IX_Tbl_ArticlePhoto_ArticleId").HasFilter("([IsDeleted]=(0))");
+            entity.HasIndex(e => new { e.ArticleId, e.SortOrder }, "IX_Tbl_ArticlePhoto_ArticleId").HasFilter("([IsDeleted]=(0) AND [ArticleId] IS NOT NULL)");
 
             entity.HasIndex(e => new { e.IsDeleted, e.DeletedAt }, "IX_Tbl_ArticlePhoto_Cleanup").HasFilter("([IsDeleted]=(1))");
+
+            entity.HasIndex(e => new { e.RequestArticleId, e.SortOrder }, "IX_Tbl_ArticlePhoto_RequestArticleId").HasFilter("([IsDeleted]=(0) AND [RequestArticleId] IS NOT NULL)");
 
             entity.Property(e => e.ArticlePhotoId)
                 .HasMaxLength(26)
@@ -236,20 +238,26 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(26)
                 .IsUnicode(false);
             entity.Property(e => e.PhotoUrl).HasMaxLength(300);
+            entity.Property(e => e.RequestArticleId)
+                .HasMaxLength(26)
+                .IsUnicode(false);
 
             entity.HasOne(d => d.Article).WithMany(p => p.TblArticlePhotos)
                 .HasForeignKey(d => d.ArticleId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_ArticlePhoto_Article");
 
             entity.HasOne(d => d.DeletedByAdmin).WithMany(p => p.TblArticlePhotos)
                 .HasForeignKey(d => d.DeletedByAdminId)
                 .HasConstraintName("FK_ArticlePhoto_DeletedByAdmin");
+
+            entity.HasOne(d => d.RequestArticle).WithMany(p => p.TblArticlePhotos)
+                .HasForeignKey(d => d.RequestArticleId)
+                .HasConstraintName("FK_ArticlePhoto_RequestArticle");
         });
 
         modelBuilder.Entity<TblAuthor>(entity =>
         {
-            entity.HasKey(e => e.AuthorId).HasName("PK__Tbl_Auth__70DAFC3483C475FF");
+            entity.HasKey(e => e.AuthorId).HasName("PK__Tbl_Auth__70DAFC34D71EC286");
 
             entity.ToTable("Tbl_Author");
 
@@ -288,7 +296,7 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<TblContactMessage>(entity =>
         {
-            entity.HasKey(e => e.ContactMessageId).HasName("PK__Tbl_Cont__2B0D4DFCB5B7CDC4");
+            entity.HasKey(e => e.ContactMessageId).HasName("PK__Tbl_Cont__2B0D4DFCE16A209A");
 
             entity.ToTable("Tbl_ContactMessage");
 
@@ -319,7 +327,7 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<TblNewsletter>(entity =>
         {
-            entity.HasKey(e => e.NewsletterId).HasName("PK__Tbl_News__34A1DFFD309DCF88");
+            entity.HasKey(e => e.NewsletterId).HasName("PK__Tbl_News__34A1DFFDCD7CE8F4");
 
             entity.ToTable("Tbl_Newsletter");
 
@@ -346,7 +354,7 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<TblNotification>(entity =>
         {
-            entity.HasKey(e => e.NotificationId).HasName("PK__Tbl_Noti__20CF2E1239785717");
+            entity.HasKey(e => e.NotificationId).HasName("PK__Tbl_Noti__20CF2E125CA7FA45");
 
             entity.ToTable("Tbl_Notification");
 
@@ -390,11 +398,21 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<TblRequestArticle>(entity =>
         {
-            entity.HasKey(e => e.RequestArticleId).HasName("PK__Tbl_Requ__A90A9A1555E00C6A");
+            entity.HasKey(e => e.RequestArticleId).HasName("PK__Tbl_Requ__A90A9A15CC88F413");
 
             entity.ToTable("Tbl_RequestArticle");
 
+            entity.HasIndex(e => e.AuthorId, "IX_Tbl_RequestArticle_AuthorId");
+
+            entity.HasIndex(e => e.ArticleCategoryId, "IX_Tbl_RequestArticle_CategoryId");
+
+            entity.HasIndex(e => new { e.IsDeleted, e.DeletedAt }, "IX_Tbl_RequestArticle_Cleanup").HasFilter("([IsDeleted]=(1))");
+
             entity.HasIndex(e => e.Status, "IX_Tbl_RequestArticle_Status").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => e.Slug, "UX_Tbl_RequestArticle_Slug_NotDeleted")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
 
             entity.Property(e => e.RequestArticleId)
                 .HasMaxLength(26)
@@ -403,28 +421,46 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.ArticleCategoryId)
                 .HasMaxLength(26)
                 .IsUnicode(false);
+            entity.Property(e => e.AuthorId)
+                .HasMaxLength(26)
+                .IsUnicode(false);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetimeoffset())", "DF_RequestArticle_CreatedAt");
             entity.Property(e => e.DeletedByAdminId)
                 .HasMaxLength(26)
                 .IsUnicode(false);
-            entity.Property(e => e.PitcherEmail).HasMaxLength(100);
-            entity.Property(e => e.PitcherName).HasMaxLength(100);
-            entity.Property(e => e.ProposedTitle).HasMaxLength(200);
+            entity.Property(e => e.PhotoCaption).HasMaxLength(200);
+            entity.Property(e => e.PhotoCredit).HasMaxLength(100);
+            entity.Property(e => e.PhotoUrl).HasMaxLength(300);
+            entity.Property(e => e.PublishedArticleId)
+                .HasMaxLength(26)
+                .IsUnicode(false);
             entity.Property(e => e.ReviewedByAdminId)
                 .HasMaxLength(26)
                 .IsUnicode(false);
+            entity.Property(e => e.Slug).HasMaxLength(200);
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
-                .HasDefaultValue("Pending", "DF_RequestArticle_Status");
-            entity.Property(e => e.SubmittedAt).HasDefaultValueSql("(sysdatetimeoffset())", "DF_RequestArticle_SubmittedAt");
+                .HasDefaultValue("Draft", "DF_RequestArticle_Status");
+            entity.Property(e => e.SubTitle).HasMaxLength(400);
+            entity.Property(e => e.Title).HasMaxLength(200);
 
             entity.HasOne(d => d.ArticleCategory).WithMany(p => p.TblRequestArticles)
                 .HasForeignKey(d => d.ArticleCategoryId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_RequestArticle_Category");
+
+            entity.HasOne(d => d.Author).WithMany(p => p.TblRequestArticles)
+                .HasForeignKey(d => d.AuthorId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_RequestArticle_Author");
 
             entity.HasOne(d => d.DeletedByAdmin).WithMany(p => p.TblRequestArticleDeletedByAdmins)
                 .HasForeignKey(d => d.DeletedByAdminId)
                 .HasConstraintName("FK_RequestArticle_DeletedByAdmin");
+
+            entity.HasOne(d => d.PublishedArticle).WithMany(p => p.TblRequestArticles)
+                .HasForeignKey(d => d.PublishedArticleId)
+                .HasConstraintName("FK_RequestArticle_Article");
 
             entity.HasOne(d => d.ReviewedByAdmin).WithMany(p => p.TblRequestArticleReviewedByAdmins)
                 .HasForeignKey(d => d.ReviewedByAdminId)

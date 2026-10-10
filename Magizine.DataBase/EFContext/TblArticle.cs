@@ -50,4 +50,6 @@ public partial class TblArticle
     public virtual TblAdmin? DeletedByAdmin { get; set; }
 
     public virtual ICollection<TblArticlePhoto> TblArticlePhotos { get; set; } = new List<TblArticlePhoto>();
+
+    public virtual ICollection<TblRequestArticle> TblRequestArticles { get; set; } = new List<TblRequestArticle>();
 }

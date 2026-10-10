@@ -19,7 +19,8 @@ public sealed class ArticlePhotoUploadItem
 public sealed class ArticlePhotoResModel
 {
     public string ArticlePhotoId { get; set; } = null!;
-    public string ArticleId { get; set; } = null!;
+    public string? ArticleId { get; set; }
+    public string? RequestArticleId { get; set; }
     public string PhotoUrl { get; set; } = null!;
     public string? Caption { get; set; }
     public string? Credit { get; set; }

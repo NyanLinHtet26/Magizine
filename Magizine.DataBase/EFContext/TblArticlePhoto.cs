@@ -7,7 +7,9 @@ public partial class TblArticlePhoto
 {
     public string ArticlePhotoId { get; set; } = null!;
 
-    public string ArticleId { get; set; } = null!;
+    public string? ArticleId { get; set; }
+
+    public string? RequestArticleId { get; set; }
 
     public string PhotoUrl { get; set; } = null!;
 
@@ -27,7 +29,9 @@ public partial class TblArticlePhoto
 
     public string? DeletedByAdminId { get; set; }
 
-    public virtual TblArticle Article { get; set; } = null!;
+    public virtual TblArticle? Article { get; set; }
 
     public virtual TblAdmin? DeletedByAdmin { get; set; }
+
+    public virtual TblRequestArticle? RequestArticle { get; set; }
 }

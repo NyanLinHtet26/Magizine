@@ -30,8 +30,8 @@ IF OBJECT_ID('dbo.Tbl_Notification', 'U') IS NOT NULL DROP TABLE dbo.Tbl_Notific
 IF OBJECT_ID('dbo.Tbl_AboutAndAppData', 'U') IS NOT NULL DROP TABLE dbo.Tbl_AboutAndAppData;
 IF OBJECT_ID('dbo.Tbl_Newsletter', 'U') IS NOT NULL DROP TABLE dbo.Tbl_Newsletter;
 IF OBJECT_ID('dbo.Tbl_ContactMessage', 'U') IS NOT NULL DROP TABLE dbo.Tbl_ContactMessage;
-IF OBJECT_ID('dbo.Tbl_RequestArticle', 'U') IS NOT NULL DROP TABLE dbo.Tbl_RequestArticle;
 IF OBJECT_ID('dbo.Tbl_ArticlePhoto', 'U') IS NOT NULL DROP TABLE dbo.Tbl_ArticlePhoto;
+IF OBJECT_ID('dbo.Tbl_RequestArticle', 'U') IS NOT NULL DROP TABLE dbo.Tbl_RequestArticle;
 IF OBJECT_ID('dbo.Tbl_Article', 'U') IS NOT NULL DROP TABLE dbo.Tbl_Article;
 IF OBJECT_ID('dbo.Tbl_ArticleCategory', 'U') IS NOT NULL DROP TABLE dbo.Tbl_ArticleCategory;
 IF OBJECT_ID('dbo.Tbl_Author', 'U') IS NOT NULL DROP TABLE dbo.Tbl_Author;
@@ -149,11 +149,46 @@ CREATE NONCLUSTERED INDEX IX_Tbl_Article_Status                 ON dbo.Tbl_Artic
 GO
 
 -- ----------------------------------------------------------------------------
--- 4B. Tbl_ArticlePhoto (Multiple Photos / Gallery per Article)
+-- 5. Tbl_RequestArticle (Author Staging & Admin Approval Queue)
+-- ----------------------------------------------------------------------------
+CREATE TABLE dbo.Tbl_RequestArticle (
+    RequestArticleId   VARCHAR(26) NOT NULL PRIMARY KEY,
+    Title              NVARCHAR(200) NOT NULL,
+    SubTitle           NVARCHAR(400) NULL,
+    Slug               NVARCHAR(200) NOT NULL,
+    Body               NVARCHAR(MAX) NULL,
+    PhotoUrl           NVARCHAR(300) NULL,
+    PhotoCaption       NVARCHAR(200) NULL,
+    PhotoCredit        NVARCHAR(100) NULL,
+    ArticleCategoryId  VARCHAR(26) NOT NULL CONSTRAINT FK_RequestArticle_Category REFERENCES dbo.Tbl_ArticleCategory(ArticleCategoryId),
+    AuthorId           VARCHAR(26) NOT NULL CONSTRAINT FK_RequestArticle_Author REFERENCES dbo.Tbl_Author(AuthorId),
+    Status             NVARCHAR(20) NOT NULL CONSTRAINT DF_RequestArticle_Status DEFAULT N'Draft',
+    SubmittedAt        DATETIMEOFFSET NULL,
+    ReviewedAt         DATETIMEOFFSET NULL,
+    ReviewedByAdminId  VARCHAR(26) NULL CONSTRAINT FK_RequestArticle_ReviewedByAdmin REFERENCES dbo.Tbl_Admin(AdminId),
+    AdminNotes         NVARCHAR(500) NULL,
+    PublishedArticleId VARCHAR(26) NULL CONSTRAINT FK_RequestArticle_Article REFERENCES dbo.Tbl_Article(ArticleId),
+    CreatedAt          DATETIMEOFFSET NOT NULL CONSTRAINT DF_RequestArticle_CreatedAt DEFAULT SYSDATETIMEOFFSET(),
+    UpdatedAt          DATETIMEOFFSET NULL,
+    IsDeleted          BIT NOT NULL CONSTRAINT DF_RequestArticle_IsDeleted DEFAULT 0,
+    DeletedAt          DATETIMEOFFSET NULL,
+    DeletedByAdminId   VARCHAR(26) NULL CONSTRAINT FK_RequestArticle_DeletedByAdmin REFERENCES dbo.Tbl_Admin(AdminId)
+);
+GO
+
+CREATE UNIQUE NONCLUSTERED INDEX UX_Tbl_RequestArticle_Slug_NotDeleted ON dbo.Tbl_RequestArticle(Slug) WHERE IsDeleted = 0;
+CREATE NONCLUSTERED INDEX IX_Tbl_RequestArticle_CategoryId             ON dbo.Tbl_RequestArticle(ArticleCategoryId);
+CREATE NONCLUSTERED INDEX IX_Tbl_RequestArticle_AuthorId               ON dbo.Tbl_RequestArticle(AuthorId);
+CREATE NONCLUSTERED INDEX IX_Tbl_RequestArticle_Status                 ON dbo.Tbl_RequestArticle(Status) WHERE IsDeleted = 0;
+GO
+
+-- ----------------------------------------------------------------------------
+-- 5B. Tbl_ArticlePhoto (Multiple Photos / Gallery for RequestArticle & Article)
 -- ----------------------------------------------------------------------------
 CREATE TABLE dbo.Tbl_ArticlePhoto (
     ArticlePhotoId    VARCHAR(26) NOT NULL PRIMARY KEY,
-    ArticleId         VARCHAR(26) NOT NULL CONSTRAINT FK_ArticlePhoto_Article REFERENCES dbo.Tbl_Article(ArticleId),
+    ArticleId         VARCHAR(26) NULL CONSTRAINT FK_ArticlePhoto_Article REFERENCES dbo.Tbl_Article(ArticleId),
+    RequestArticleId  VARCHAR(26) NULL CONSTRAINT FK_ArticlePhoto_RequestArticle REFERENCES dbo.Tbl_RequestArticle(RequestArticleId),
     PhotoUrl          NVARCHAR(300) NOT NULL,
     Caption           NVARCHAR(200) NULL,
     Credit            NVARCHAR(100) NULL,
@@ -166,34 +201,9 @@ CREATE TABLE dbo.Tbl_ArticlePhoto (
 );
 GO
 
-CREATE NONCLUSTERED INDEX IX_Tbl_ArticlePhoto_ArticleId ON dbo.Tbl_ArticlePhoto(ArticleId, SortOrder ASC) WHERE IsDeleted = 0;
-CREATE NONCLUSTERED INDEX IX_Tbl_ArticlePhoto_Cleanup   ON dbo.Tbl_ArticlePhoto(IsDeleted, DeletedAt)     WHERE IsDeleted = 1;
-GO
-
--- ----------------------------------------------------------------------------
--- 5. Tbl_RequestArticle
--- ----------------------------------------------------------------------------
-CREATE TABLE dbo.Tbl_RequestArticle (
-    RequestArticleId  VARCHAR(26) NOT NULL PRIMARY KEY,
-    PitcherName       NVARCHAR(100) NOT NULL,
-    PitcherEmail      NVARCHAR(100) NOT NULL,
-    ProposedTitle     NVARCHAR(200) NULL,
-    PitchBody         NVARCHAR(MAX) NOT NULL,
-    ArticleCategoryId VARCHAR(26) NULL CONSTRAINT FK_RequestArticle_Category REFERENCES dbo.Tbl_ArticleCategory(ArticleCategoryId),
-    Status            NVARCHAR(20) NOT NULL CONSTRAINT DF_RequestArticle_Status DEFAULT N'Pending',
-    SubmittedAt       DATETIMEOFFSET NOT NULL CONSTRAINT DF_RequestArticle_SubmittedAt DEFAULT SYSDATETIMEOFFSET(),
-    ReviewedAt        DATETIMEOFFSET NULL,
-    ReviewedByAdminId VARCHAR(26) NULL CONSTRAINT FK_RequestArticle_ReviewedByAdmin REFERENCES dbo.Tbl_Admin(AdminId),
-    AdminNotes        NVARCHAR(500) NULL,
-    CreatedAt         DATETIMEOFFSET NOT NULL CONSTRAINT DF_RequestArticle_CreatedAt DEFAULT SYSDATETIMEOFFSET(),
-    UpdatedAt         DATETIMEOFFSET NULL,
-    IsDeleted         BIT NOT NULL CONSTRAINT DF_RequestArticle_IsDeleted DEFAULT 0,
-    DeletedAt         DATETIMEOFFSET NULL,
-    DeletedByAdminId  VARCHAR(26) NULL CONSTRAINT FK_RequestArticle_DeletedByAdmin REFERENCES dbo.Tbl_Admin(AdminId)
-);
-GO
-
-CREATE NONCLUSTERED INDEX IX_Tbl_RequestArticle_Status ON dbo.Tbl_RequestArticle(Status) WHERE IsDeleted = 0;
+CREATE NONCLUSTERED INDEX IX_Tbl_ArticlePhoto_ArticleId        ON dbo.Tbl_ArticlePhoto(ArticleId, SortOrder ASC)        WHERE IsDeleted = 0 AND ArticleId IS NOT NULL;
+CREATE NONCLUSTERED INDEX IX_Tbl_ArticlePhoto_RequestArticleId ON dbo.Tbl_ArticlePhoto(RequestArticleId, SortOrder ASC) WHERE IsDeleted = 0 AND RequestArticleId IS NOT NULL;
+CREATE NONCLUSTERED INDEX IX_Tbl_ArticlePhoto_Cleanup          ON dbo.Tbl_ArticlePhoto(IsDeleted, DeletedAt)            WHERE IsDeleted = 1;
 GO
 
 -- ----------------------------------------------------------------------------
@@ -620,6 +630,7 @@ BEGIN
     SELECT
         ap.ArticlePhotoId,
         ap.ArticleId,
+        ap.RequestArticleId,
         ap.PhotoUrl,
         ap.Caption,
         ap.Credit,
@@ -632,14 +643,40 @@ BEGIN
 END;
 GO
 
+-- Procedure: fn_get_article_photos_by_request_id
+CREATE OR ALTER PROCEDURE dbo.fn_get_article_photos_by_request_id
+    @p_request_id VARCHAR(26)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        ap.ArticlePhotoId,
+        ap.ArticleId,
+        ap.RequestArticleId,
+        ap.PhotoUrl,
+        ap.Caption,
+        ap.Credit,
+        ap.SortOrder,
+        ap.CreatedAt
+    FROM dbo.Tbl_ArticlePhoto ap
+    WHERE ap.RequestArticleId = @p_request_id
+      AND ap.IsDeleted = 0
+    ORDER BY ap.SortOrder ASC, ap.CreatedAt ASC;
+END;
+GO
+
 -- ----------------------------------------------------------------------------
--- 4. REQUEST ARTICLES (PITCHES)
+-- 4. REQUEST ARTICLES (AUTHOR STAGING & ADMIN APPROVAL)
 -- ----------------------------------------------------------------------------
 
 -- Procedure: fn_get_request_article_list
 CREATE OR ALTER PROCEDURE dbo.fn_get_request_article_list
-    @p_search_keyword NVARCHAR(100) = NULL,
+    @p_search_keyword NVARCHAR(200) = NULL,
+    @p_category_id    VARCHAR(26)   = NULL,
+    @p_author_id      VARCHAR(26)   = NULL,
     @p_status         NVARCHAR(20)  = NULL,
+    @p_exclude_draft  BIT           = 0,
     @p_page           INT           = 1,
     @p_page_size      INT           = 20
 AS
@@ -651,29 +688,44 @@ BEGIN
     SELECT @v_total = COUNT(1)
     FROM dbo.Tbl_RequestArticle r
     WHERE r.IsDeleted = 0
-      AND (@p_search_keyword IS NULL OR r.PitcherName LIKE N'%' + @p_search_keyword + N'%' OR r.PitcherEmail LIKE N'%' + @p_search_keyword + N'%')
+      AND (@p_exclude_draft = 0 OR r.[Status] <> N'Draft')
+      AND (@p_search_keyword IS NULL OR r.Title LIKE N'%' + @p_search_keyword + N'%' OR r.SubTitle LIKE N'%' + @p_search_keyword + N'%')
+      AND (@p_category_id IS NULL OR @p_category_id = '' OR r.ArticleCategoryId = @p_category_id)
+      AND (@p_author_id IS NULL OR @p_author_id = '' OR r.AuthorId = @p_author_id)
       AND (@p_status IS NULL OR @p_status = N'' OR r.[Status] = @p_status);
 
     SELECT 
         @v_total AS TotalCount,
         r.RequestArticleId,
-        r.PitcherName,
-        r.PitcherEmail,
-        r.ProposedTitle,
-        r.PitchBody,
+        r.Title,
+        r.SubTitle,
+        r.Slug,
+        r.Body,
+        r.PhotoUrl,
+        r.PhotoCaption,
+        r.PhotoCredit,
         r.ArticleCategoryId,
+        c.[Name] AS CategoryName,
+        r.AuthorId,
+        CONCAT(a.FirstName, N' ', a.LastName) AS AuthorName,
         r.[Status],
         r.SubmittedAt,
         r.ReviewedAt,
         r.ReviewedByAdminId,
         r.AdminNotes,
+        r.PublishedArticleId,
         r.CreatedAt,
         r.UpdatedAt
     FROM dbo.Tbl_RequestArticle r
+    INNER JOIN dbo.Tbl_ArticleCategory c ON r.ArticleCategoryId = c.ArticleCategoryId
+    INNER JOIN dbo.Tbl_Author a ON r.AuthorId = a.AuthorId
     WHERE r.IsDeleted = 0
-      AND (@p_search_keyword IS NULL OR r.PitcherName LIKE N'%' + @p_search_keyword + N'%' OR r.PitcherEmail LIKE N'%' + @p_search_keyword + N'%')
+      AND (@p_exclude_draft = 0 OR r.[Status] <> N'Draft')
+      AND (@p_search_keyword IS NULL OR r.Title LIKE N'%' + @p_search_keyword + N'%' OR r.SubTitle LIKE N'%' + @p_search_keyword + N'%')
+      AND (@p_category_id IS NULL OR @p_category_id = '' OR r.ArticleCategoryId = @p_category_id)
+      AND (@p_author_id IS NULL OR @p_author_id = '' OR r.AuthorId = @p_author_id)
       AND (@p_status IS NULL OR @p_status = N'' OR r.[Status] = @p_status)
-    ORDER BY r.SubmittedAt DESC
+    ORDER BY COALESCE(r.SubmittedAt, r.CreatedAt) DESC
     OFFSET (@p_page - 1) * @p_page_size ROWS
     FETCH NEXT @p_page_size ROWS ONLY;
 END;
@@ -681,28 +733,41 @@ GO
 
 -- Procedure: fn_get_request_article_by_id
 CREATE OR ALTER PROCEDURE dbo.fn_get_request_article_by_id
-    @p_request_id VARCHAR(26)
+    @p_request_id    VARCHAR(26),
+    @p_author_id     VARCHAR(26) = NULL,
+    @p_exclude_draft BIT         = 0
 AS
 BEGIN
     SET NOCOUNT ON;
 
     SELECT 
         r.RequestArticleId,
-        r.PitcherName,
-        r.PitcherEmail,
-        r.ProposedTitle,
-        r.PitchBody,
+        r.Title,
+        r.SubTitle,
+        r.Slug,
+        r.Body,
+        r.PhotoUrl,
+        r.PhotoCaption,
+        r.PhotoCredit,
         r.ArticleCategoryId,
+        c.[Name] AS CategoryName,
+        r.AuthorId,
+        CONCAT(a.FirstName, N' ', a.LastName) AS AuthorName,
         r.[Status],
         r.SubmittedAt,
         r.ReviewedAt,
         r.ReviewedByAdminId,
         r.AdminNotes,
+        r.PublishedArticleId,
         r.CreatedAt,
         r.UpdatedAt
     FROM dbo.Tbl_RequestArticle r
+    INNER JOIN dbo.Tbl_ArticleCategory c ON r.ArticleCategoryId = c.ArticleCategoryId
+    INNER JOIN dbo.Tbl_Author a ON r.AuthorId = a.AuthorId
     WHERE r.RequestArticleId = @p_request_id
-      AND r.IsDeleted = 0;
+      AND r.IsDeleted = 0
+      AND (@p_exclude_draft = 0 OR r.[Status] <> N'Draft')
+      AND (@p_author_id IS NULL OR @p_author_id = '' OR r.AuthorId = @p_author_id);
 END;
 GO
 
@@ -780,7 +845,7 @@ BEGIN
 END;
 GO
 
--- Seed 5: Default Articles (Published + Draft for immediate Postman testing)
+-- Seed 5: Default Published Article in Tbl_Article
 IF NOT EXISTS (SELECT 1 FROM dbo.Tbl_Article WHERE ArticleId = '01JART00000000000000000001')
 BEGIN
     INSERT INTO dbo.Tbl_Article (
@@ -804,9 +869,35 @@ BEGIN
         1,
         1,
         SYSDATETIMEOFFSET()
+    );
+END;
+GO
+
+-- Seed 6: Default Author Article Requests in Tbl_RequestArticle (1 Submitted, 1 Draft)
+IF NOT EXISTS (SELECT 1 FROM dbo.Tbl_RequestArticle WHERE RequestArticleId = '01JREQ00000000000000000001')
+BEGIN
+    INSERT INTO dbo.Tbl_RequestArticle (
+        RequestArticleId, Title, SubTitle, Slug, Body, PhotoUrl, PhotoCaption, PhotoCredit,
+        ArticleCategoryId, AuthorId, [Status], SubmittedAt, CreatedAt
+    )
+    VALUES
+    (
+        '01JREQ00000000000000000001',
+        N'Monastic Architecture in Contemporary Homes',
+        N'How Cistercian simplicity inspires serene urban residences',
+        N'monastic-architecture-in-contemporary-homes',
+        N'<p>An essay examining how contemporary architects draw inspiration from Cistercian monasteries to create serene urban residences.</p>',
+        N'https://images.unsplash.com/photo-1513694203232-719a280e022f',
+        N'Minimalist limestone courtyard in Kyoto.',
+        N'Photo by Kenji Sato',
+        '01JCAT00000000000000000003',
+        '01JAUTHOR00000000000000001',
+        N'Submitted',
+        SYSDATETIMEOFFSET(),
+        SYSDATETIMEOFFSET()
     ),
     (
-        '01JART00000000000000000002',
+        '01JREQ00000000000000000002',
         N'Slow Morning Rituals',
         N'Cultivating stillness before the digital day begins',
         N'slow-morning-rituals',
@@ -818,29 +909,6 @@ BEGIN
         '01JAUTHOR00000000000000001',
         N'Draft',
         NULL,
-        0,
-        0,
-        SYSDATETIMEOFFSET()
-    );
-END;
-GO
-
--- Seed 6: Default Request Article Pitch
-IF NOT EXISTS (SELECT 1 FROM dbo.Tbl_RequestArticle WHERE RequestArticleId = '01JREQ00000000000000000001')
-BEGIN
-    INSERT INTO dbo.Tbl_RequestArticle (
-        RequestArticleId, PitcherName, PitcherEmail, ProposedTitle, PitchBody,
-        ArticleCategoryId, [Status], SubmittedAt, CreatedAt
-    )
-    VALUES (
-        '01JREQ00000000000000000001',
-        N'Julian Mercer',
-        N'julian.mercer@example.com',
-        N'Monastic Architecture in Contemporary Homes',
-        N'An essay examining how contemporary architects draw inspiration from Cistercian monasteries to create serene urban residences.',
-        '01JCAT00000000000000000003',
-        N'Pending',
-        SYSDATETIMEOFFSET(),
         SYSDATETIMEOFFSET()
     );
 END;
@@ -850,12 +918,13 @@ GO
 IF NOT EXISTS (SELECT 1 FROM dbo.Tbl_ArticlePhoto WHERE ArticlePhotoId = '01JAPHT0000000000000000001')
 BEGIN
     INSERT INTO dbo.Tbl_ArticlePhoto (
-        ArticlePhotoId, ArticleId, PhotoUrl, Caption, Credit, SortOrder, CreatedAt
+        ArticlePhotoId, ArticleId, RequestArticleId, PhotoUrl, Caption, Credit, SortOrder, CreatedAt
     )
     VALUES
     (
         '01JAPHT0000000000000000001',
         '01JART00000000000000000001',
+        NULL,
         N'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61',
         N'Handcrafted stoneware vessels in afternoon shadow.',
         N'Photo by L''ÉDITION Studio',
@@ -864,11 +933,12 @@ BEGIN
     ),
     (
         '01JAPHT0000000000000000002',
-        '01JART00000000000000000001',
+        NULL,
+        '01JREQ00000000000000000001',
         N'https://images.unsplash.com/photo-1513694203232-719a280e022f',
         N'Minimalist limestone courtyard in Kyoto.',
         N'Photo by Kenji Sato',
-        2,
+        1,
         SYSDATETIMEOFFSET()
     );
 END;

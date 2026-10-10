@@ -2,7 +2,6 @@ using Magizine.DataBase;
 using Magizine.Shared.Security;
 using MagizinePublic.Api.Features.ArticleCategory;
 using MagizinePublic.Api.Features.Article;
-using MagizinePublic.Api.Features.RequestArticle;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
 
@@ -14,7 +13,7 @@ namespace MagizinePublic.Api;
 /// </summary>
 /// <remarks>
 /// CORS is the one security control that matters here. This is the API a browser on the magazine
-/// site will call, and it is the one with public write endpoints (pitch submission, contact form,
+/// site will call, and it is the one with public write endpoints (contact form,
 /// newsletter), so the origin allowlist is explicit and empty by default rather than
 /// <c>AllowAnyOrigin()</c>.
 /// </remarks>
@@ -109,7 +108,6 @@ public static class FeatureManager
         builder.Services.AddMagizineFileStorage(builder.Configuration);
         builder.Services.AddScoped<ArticleCategoryService>();
         builder.Services.AddScoped<ArticleService>();
-        builder.Services.AddScoped<RequestArticleService>();
 
         return builder;
     }

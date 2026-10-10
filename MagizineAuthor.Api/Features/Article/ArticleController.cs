@@ -1,4 +1,4 @@
-using Magizine.Shared.Models.Article;
+using Magizine.Shared.Models.RequestArticle;
 using Magizine.Shared.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,14 +18,14 @@ public sealed class ArticleController : ControllerBase
     }
 
     [HttpPost("Detail")]
-    public async Task<IActionResult> GetMyArticleById([FromBody] ArticleDetailReqModel reqModel, CancellationToken ct)
+    public async Task<IActionResult> GetMyArticleById([FromBody] RequestArticleDetailReqModel reqModel, CancellationToken ct)
     {
         var result = await _articleService.GetMyArticleByIdAsync(reqModel, ct);
         return Ok(result);
     }
 
     [HttpPost("List")]
-    public async Task<IActionResult> GetMyArticles([FromBody] ArticleListReqModel reqModel, CancellationToken ct)
+    public async Task<IActionResult> GetMyArticles([FromBody] RequestArticleListReqModel reqModel, CancellationToken ct)
     {
         var result = await _articleService.GetMyArticlesAsync(reqModel, ct);
         return Ok(result);
@@ -34,25 +34,32 @@ public sealed class ArticleController : ControllerBase
     [HttpPost("Create")]
     [RequestSizeLimit(FileStorageExtensions.MaxMultipartRequestSizeBytes)]
     [RequestFormLimits(MultipartBodyLengthLimit = FileStorageExtensions.MaxMultipartRequestSizeBytes)]
-    public async Task<IActionResult> CreateDraft([FromForm] CreateArticleReqModel reqModel, CancellationToken ct)
+    public async Task<IActionResult> Create([FromForm] CreateRequestArticleReqModel reqModel, CancellationToken ct)
     {
-        var result = await _articleService.CreateDraftAsync(reqModel, ct);
+        var result = await _articleService.CreateArticleAsync(reqModel, ct);
         return Ok(result);
     }
 
     [HttpPost("Update")]
     [RequestSizeLimit(FileStorageExtensions.MaxMultipartRequestSizeBytes)]
     [RequestFormLimits(MultipartBodyLengthLimit = FileStorageExtensions.MaxMultipartRequestSizeBytes)]
-    public async Task<IActionResult> UpdateDraft([FromForm] UpdateArticleReqModel reqModel, CancellationToken ct)
+    public async Task<IActionResult> Update([FromForm] UpdateRequestArticleReqModel reqModel, CancellationToken ct)
     {
-        var result = await _articleService.UpdateDraftAsync(reqModel, ct);
+        var result = await _articleService.UpdateArticleAsync(reqModel, ct);
         return Ok(result);
     }
 
     [HttpPost("SubmitForReview")]
-    public async Task<IActionResult> SubmitForReview([FromBody] ArticleDetailReqModel reqModel, CancellationToken ct)
+    public async Task<IActionResult> SubmitForReview([FromBody] RequestArticleDetailReqModel reqModel, CancellationToken ct)
     {
         var result = await _articleService.SubmitForReviewAsync(reqModel, ct);
+        return Ok(result);
+    }
+
+    [HttpPost("Delete")]
+    public async Task<IActionResult> Delete([FromBody] RequestArticleDetailReqModel reqModel, CancellationToken ct)
+    {
+        var result = await _articleService.DeleteMyArticleAsync(reqModel, ct);
         return Ok(result);
     }
 }

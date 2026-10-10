@@ -20,7 +20,7 @@ public sealed class EnumsTests
     [Fact]
     public void EnumRequestArticleStatus_HasExpectedMembers()
     {
-        Enum.GetNames<EnumRequestArticleStatus>().Should().BeEquivalentTo("Pending", "UnderReview", "Accepted", "Rejected");
+        Enum.GetNames<EnumRequestArticleStatus>().Should().BeEquivalentTo("Draft", "Submitted", "Approved", "Rejected");
         Enum.GetValues<EnumRequestArticleStatus>().Should().HaveCount(4);
     }
 

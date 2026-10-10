@@ -1,25 +1,26 @@
 namespace Magizine.Shared.Enums;
 
 /// <summary>
-/// Valid values for <c>Tbl_RequestArticle.Status</c> (<c>varchar(20) NOT NULL DEFAULT 'Pending'</c>).
+/// Valid values for <c>Tbl_RequestArticle.Status</c> (<c>nvarchar(20) NOT NULL DEFAULT 'Draft'</c>).
 /// </summary>
 /// <remarks>
 /// The MEMBER NAME IS THE STORED VALUE - renaming a member is a breaking data change.
-/// Distinguish this from <see cref="EnumArticleStatus"/>: a pitch is reviewed by an admin and
-/// normally becomes a real <c>Tbl_Article</c> row via <c>Accepted</c>, but accepting a pitch
-/// does not publish it - the article still starts at <see cref="EnumArticleStatus.Draft"/>.
+/// Authors create and edit articles in <c>Tbl_RequestArticle</c> with <see cref="Draft"/> or
+/// <see cref="Submitted"/> status. When an Admin reviews a <see cref="Submitted"/> request and marks
+/// it <see cref="Approved"/>, the article is automatically created in <c>Tbl_Article</c> with
+/// <see cref="EnumArticleStatus.Published"/> status.
 /// </remarks>
 public enum EnumRequestArticleStatus
 {
-    /// <summary>Submitted, not yet looked at. Database default.</summary>
-    Pending,
+    /// <summary>Saved by Author as a draft in Tbl_RequestArticle. Editable by Author.</summary>
+    Draft,
 
-    /// <summary>An admin has picked it up and is reading it.</summary>
-    UnderReview,
+    /// <summary>Submitted by Author for Admin review. Still editable by Author until reviewed.</summary>
+    Submitted,
 
-    /// <summary>Accepted - the admin is expected to create the article from it.</summary>
-    Accepted,
+    /// <summary>Approved by Admin and published into Tbl_Article with Status = 'Published'.</summary>
+    Approved,
 
-    /// <summary>Declined. <c>AdminNotes</c> should explain why.</summary>
+    /// <summary>Declined by Admin. <c>AdminNotes</c> explains why.</summary>
     Rejected
 }

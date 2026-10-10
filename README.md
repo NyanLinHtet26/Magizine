@@ -1,249 +1,97 @@
-# MagizineBackend
+# L'ÉDITION — MagizineBackend
 
-Backend for L'ÉDITION, a digital magazine platform. Two ASP.NET Core APIs (public and admin)
-sharing a single EF Core data layer, backed by Supabase Postgres.
+Backend solution for **L'ÉDITION**, an enterprise digital magazine and journalistic publishing platform. Built with **.NET 10 (C# 13)**, featuring a modular vertical-slice feature architecture with CQRS read/write split, universal 26-character **ULID** identities, and multi-API gateways for Readers, Authors, and Administrators.
 
-**Status:** the data layer is complete. The APIs currently expose **no business endpoints** —
-there are no controllers yet, and authentication has not been started.
-
-**Repository:** `github.com/NyanLinHtet26/Magizine` (public) — default branch `Magzine-dev`.
+> 📖 **Comprehensive Documentation**: For full technical specifications, architecture diagrams, database schema, endpoint catalog, and code styles, see [**`PROJECT_DOCUMENTATION.md`**](PROJECT_DOCUMENTATION.md).
 
 ---
 
-## Project layout
+## Solution Overview
 
-| Project | Role | Target | Key packages |
+The solution consists of three specialized API gateways sharing a unified data and domain layer:
+
+| Project | Role | Port (HTTP/HTTPS) | Description |
 |---|---|---|---|
-| `MagizineAuthor.Api` | Public, author-facing API | `net10.0` | `Microsoft.AspNetCore.OpenApi` 10.0.10 |
-| `MagizineAdmin.Api` | Admin/back-office API | `net10.0` | `Microsoft.AspNetCore.OpenApi` 10.0.10 |
-| `Magizine.DataBase` | EF Core data layer, referenced by both APIs | `net10.0` | `Microsoft.EntityFrameworkCore{,.Relational,.Design}` 10.0.12, `Npgsql.EntityFrameworkCore.PostgreSQL` 10.0.3 |
-| `Magizine.Shared` | Cross-cutting primitives, referenced by both APIs | `net10.0` | none (zero dependencies) |
-
-Both APIs call one shared registration helper, so the provider and connection-string key are
-defined in exactly one place:
-
-```csharp
-builder.Services.AddMagizineDatabase(builder.Configuration);
-```
-
-`AddMagizineDatabase` lives in `Magizine.DataBase/DependencyInjection.cs` and registers
-`MagizineDbContext`. It throws a descriptive error at startup if
-`ConnectionStrings:DefaultConnection` is missing.
-
-### `Result<T>`
-
-`Magizine.Shared` holds `Result<T>` (`Models/Result.cs`) and `EnumRespType`
-(`Enums/EnumRespType.cs`) for expected service-layer outcomes — validation, not-found,
-conflict. It carries no HTTP or logging dependency, so the same type works in a worker or
-test. Turning a result into an HTTP response is the API layer's job.
-
-```csharp
-Result<TblArticle> result = article is null
-    ? Result<TblArticle>.Error("ME#404", "Article not found")
-    : Result<TblArticle>.Success(article);
-
-return result.IsSuccess ? Results.Ok(result.Data) : Results.NotFound(...);
-```
-
-Guidelines:
-
-- Return `Result<T>` for **expected** failures. Let genuine exceptions throw, or wrap them
-  with `Result<T>.Error(ex, "ME#999", logger.LogError)`, which logs the exception and
-  substitutes a generic message so internal detail never reaches a client.
-- Check `IsError` rather than comparing `RespType`; `Warning` and `None` are not errors.
-- Use the `params` overloads — `Success(code, parameters)`, `Success(code, data, parameters)`,
-  `Error(code, parameters)` — when you need `RespDespParameter` values for a client-side
-  message template.
-- Avoid `Result<object>`. On it, `Success(data, code)` is ambiguous between
-  `Success(T data, string code)` and `Success(string code, T data, params object[])` — neither
-  candidate is uniformly more specific, so the call fails to compile. `Result<string>` and any
-  DTO-typed `Result<T>` are unaffected.
-- `Magizine.DataBase` deliberately does **not** reference `Magizine.Shared` — keep result
-  wrapping in services and controllers, not in the data layer.
+| **`MagizinePublic.Api`** | Reader Gateway | `5080` / `7080` | Public article feed, slug lookup, categories, and pitch submission. |
+| **`MagizineAuthor.Api`** | Author Gateway | `5267` / `7137` | Author draft workspace, draft revisions, and submission for review. |
+| **`MagizineAdmin.Api`** | Admin Gateway | `5024` / `7036` | Editorial governance, curation, categories, authors, and pitch reviews. |
+| **`Magizine.DataBase`** | Command Layer | — | EF Core 10 data layer with global soft-delete query filters. |
+| **`Magizine.Shared`** | Query & Domain | — | Dapper stored-procedure runner (`DapperService`), `Result<T>` monad, JWT auth, DTOs. |
+| **`Magizine.Tests`** | Test Suite | — | xUnit, Moq, FluentAssertions unit and integration tests. |
 
 ---
 
-## Prerequisites
+## Key Architecture Highlights
 
-- .NET 10 SDK
-- The EF Core CLI (one-off):
-  ```powershell
-  dotnet tool install --global dotnet-ef --version 10.0.12
-  ```
-- Access to the Supabase project
-
----
-
-## Getting started
-
-### 1. Supply the connection string
-
-The connection string is **never** committed. It goes in user-secrets — set it for **both**
-API projects:
-
-```powershell
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "<value>" --project ".\MagizineAuthor.Api\MagizineAuthor.Api.csproj"
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "<value>" --project ".\MagizineAdmin.Api\MagizineAdmin.Api.csproj"
-```
-
-> Use the **session pooler on port 5432**, not the transaction-mode pooler on 6543. See
-> [Rules and gotchas](#rules-and-gotchas).
-
-### 2. Run an API
-
-```powershell
-dotnet run --project .\MagizineAuthor.Api\MagizineAuthor.Api.csproj    # http://localhost:5267
-dotnet run --project .\MagizineAdmin.Api\MagizineAdmin.Api.csproj     # http://localhost:5024
-```
-
-In `Development` the OpenAPI document is served at `/openapi/v1.json`.
+- **CQRS Read/Write Split**:
+  - **Writes / Commands**: Handled by **Entity Framework Core 10** (`MagizineDbContext`) with automated soft-delete query filtering.
+  - **Reads / Queries**: Handled by **Dapper 2.1** (`DapperService`) via pre-compiled T-SQL / PostgreSQL stored procedures for single-trip paging and maximum throughput.
+- **Universal ULID Identity**:
+  - All Primary and Foreign Keys use 26-character Crockford Base32 **ULIDs** (`VARCHAR(26)` in SQL, `string` in C#).
+  - Lexicographically sortable by millisecond timestamp; zero database roundtrips for key generation.
+- **Dual Database Support**:
+  - **SQL Server**: Fully automated via [`Database_Scripts/Full_Database_Script_SqlServer.sql`](Database_Scripts/Full_Database_Script_SqlServer.sql) with all 10 tables, 10 stored procedures, indices, and seed data.
+  - **PostgreSQL / Supabase**: Supported via [`Doc/Supabase_Schema.sql`](Doc/Supabase_Schema.sql) and [`Doc/Rescaffold.ps1`](Doc/Rescaffold.ps1).
+- **Transport Standard**:
+  - Consistent `Result<T>` response model and standardized `ErrorEnvelope`.
+  - PascalCase JSON wire serialization with string enum conversion.
+  - Strict RFC 7519 JWT Bearer authentication with HMAC-SHA256.
 
 ---
 
-## Database-first workflow
+## Quick Start
 
-**The database is the source of truth.** There are no EF migrations in this project, and none
-should ever be generated. Schema changes are made in Supabase (SQL editor or Studio), then the
-C# model is regenerated to match.
+### 1. Database Setup (SQL Server)
+Execute [`Database_Scripts/Full_Database_Script_SqlServer.sql`](Database_Scripts/Full_Database_Script_SqlServer.sql) in SQL Server Management Studio or Azure Data Studio.
 
-### Regenerate the model
+### 2. Configure Secrets
+```bash
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Data Source=DESKTOP-BQIFN7K;Initial Catalog=MagizineDB;User ID=SA;Password=12345;TrustServerCertificate=True;Encrypt=True;MultipleActiveResultSets=True;" --project MagizineAdmin.Api
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Data Source=DESKTOP-BQIFN7K;Initial Catalog=MagizineDB;User ID=SA;Password=12345;TrustServerCertificate=True;Encrypt=True;MultipleActiveResultSets=True;" --project MagizineAuthor.Api
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Data Source=DESKTOP-BQIFN7K;Initial Catalog=MagizineDB;User ID=SA;Password=12345;TrustServerCertificate=True;Encrypt=True;MultipleActiveResultSets=True;" --project MagizinePublic.Api
+```
 
+### 3. Database Scaffolding (When Tables Are Added or Changed)
+Scaffolding generates **ONLY** entity classes (`Tbl*.cs`) and `AppDbContext.cs` inside `Magizine.DataBase\EFContext`. Hand-crafted DTO models in `Magizine.Shared\Models` are never touched:
+```bash
+./skill.sh scaffold
+```
+Or via PowerShell:
 ```powershell
 .\Doc\Rescaffold.ps1
 ```
 
-Expected output:
+### 4. Build & Run with `skill.sh`
+```bash
+# Build solution
+./skill.sh build
 
-```
-Scaffolding from the public schema ...
-Pruning entity files that are not magazine tables ...
-
-  DbSets : 10 (expected 10)
-  Files  : 11 (expected 11)
-OK - 10 magazine tables scaffolded, no credentials in generated code.
-```
-
-Then confirm the model is what you expect:
-
-```powershell
-git status --porcelain    # empty == model byte-identical, nothing changed
+# Run APIs
+./skill.sh run-admin     # http://localhost:5024/scalar/v1
+./skill.sh run-author    # http://localhost:5267/scalar/v1
+./skill.sh run-public    # http://localhost:5080/scalar/v1
 ```
 
-Re-running the script is a **true no-op** — it is verified to produce a byte-identical model.
-
-### What the script actually does
-
-1. Reads the connection string from `MagizineAdmin.Api`'s user-secrets.
-2. Scaffolds **only the `public` schema**, which holds the 10 magazine tables. Supabase's own
-   `auth` / `storage` / `realtime` tables are deliberately excluded.
-3. Scaffolds *over* the existing files (`--force`) rather than deleting first. `dotnet ef`
-   builds the project before scaffolding, and `DependencyInjection.cs` references the
-   generated types — clearing the directory first would break the build.
-4. Prunes any generated file that isn't one of the 10 magazine entities.
-5. Asserts 10 DbSets / 11 files, and **fails** if `OnConfiguring` or a password appears in
-   `AppDbContext.cs`.
-
-### The underlying command
-
-```powershell
-$cs = ((dotnet user-secrets list --project .\MagizineAdmin.Api\MagizineAdmin.Api.csproj |
-        Select-String 'ConnectionStrings:DefaultConnection') -split '=', 2)[1].Trim()
-
-dotnet ef dbcontext scaffold $cs Npgsql.EntityFrameworkCore.PostgreSQL `
-    --project Magizine.DataBase\Magizine.DataBase.csproj `
-    --output-dir EFContext `
-    --context AppDbContext `
-    --namespace Magizine.DataBase.Models `
-    --schema public `
-    --no-onconfiguring `
-    --force
+Or run directly with the `dotnet` CLI:
+```bash
+dotnet build
+dotnet run --project MagizineAdmin.Api --launch-profile http
 ```
-
-Prefer the script — it also prunes leftovers and guards against credential leakage. If you run
-this by hand you must prune the orphaned entity files yourself.
-
-### The 10 magazine tables
-
-| Table | Entity class | Soft delete |
-|---|---|---|
-| `Tbl_Admin` | `TblAdmin` | yes |
-| `Tbl_Author` | `TblAuthor` | yes |
-| `Tbl_Article` | `TblArticle` | yes |
-| `Tbl_ArticleCategory` | `TblArticleCategory` | yes |
-| `Tbl_RequestArticle` | `TblRequestArticle` | yes |
-| `Tbl_ContactMessage` | `TblContactMessage` | yes |
-| `Tbl_Newsletter` | `TblNewsletter` | yes |
-| `Tbl_Notification` | `TblNotification` | yes |
-| `Tbl_Ads` | `TblAd` | yes |
-| `Tbl_AboutAndAppData` | `TblAboutAndAppDatum` | **no** — has no soft-delete columns |
-
-Schema reference: `Doc/Supabase_Schema.sql` plus the `.xlsx` design documents in `Doc/`.
 
 ---
 
-## Soft deletes
+## Developer Tooling (`skill.sh`)
 
-`Magizine.DataBase/MagizineDbContext.cs` derives from the scaffolded `AppDbContext` and adds a
-`!IsDeleted` query filter to the 9 tables that support it. Rows with `IsDeleted = true` are
-excluded from ordinary queries automatically.
+Use the included `./skill.sh` CLI script for common operations:
 
-```csharp
-modelBuilder.Entity<TblArticle>().HasQueryFilter(e => !e.IsDeleted);
-```
-
-This file lives **outside** `EFContext/` on purpose, so re-scaffolding can never clobber it.
-Hand-written behaviour goes there; scaffolded mappings go in `EFContext/`.
-
----
-
-## Adding or renaming a table
-
-The script carries a hardcoded allowlist of the 10 expected tables. If you add an 11th table
-(or rename one) in Supabase, the script will scaffold it, then **prune the new file** because
-its class name isn't in the allowlist — leaving a broken build. That is a deliberate guard, but
-it means you must edit the script.
-
-In `Doc/Rescaffold.ps1`, add the table to **both** arrays:
-
-```powershell
-$expectedTableNames = @( ... 'Tbl_YourNewTable' )    # schema name
-$expectedClassNames = @( ... 'TblYourNewTable' )      # EF's singularised class name
-```
-
-Then re-run. Both arrays must stay the same length as each other.
-
----
-
-## Rules and gotchas
-
-- **Never run `dotnet ef migrations add`.** The model still contains 12 `auth`/`realtime`/`storage`
-  enums and 4 Postgres extensions, because EF discovers those at *database* level — restricting
-  to the `public` schema filters tables but not enums or extensions. A migration would try to
-  create them. Make schema changes in Supabase instead.
-- **Never omit `--no-onconfiguring`.** Without it EF writes a hardcoded connection string into
-  `AppDbContext.cs`, and that `OnConfiguring` override silently takes precedence over the
-  connection string registered by `AddMagizineDatabase` — putting your password in source.
-- **Use the session pooler (port 5432), not transaction mode (6543).** In transaction mode
-  Supavisor serves exactly one query per connection and every subsequent read on that connection
-  stalls until it times out. This presents as a mysterious ~32 s `TimeoutException` on the
-  *second* query in a request, not as an auth error.
-- **The scaffold script reads the secret from `MagizineAdmin.Api` only** — never from
-  `MagizineAuthor.Api`. Both must be updated whenever the password changes.
-- **Never commit credentials.** Connection strings live in user-secrets; `.gitignore` also
-  excludes `appsettings.Local.json`, `.env`, and `secrets.json`.
-- **In production**, supply the connection string as the environment variable
-  `ConnectionStrings__DefaultConnection` (double underscore).
-
----
-
-## Known issues
-
-- **4 build warnings: `NU1903`.** `Microsoft.OpenApi` 2.0.0, pulled in transitively by
-  `Microsoft.AspNetCore.OpenApi` 10.0.10, has a known high-severity advisory
-  ([GHSA-v5pm-xwqc-g5wc](https://github.com/advisories/GHSA-v5pm-xwqc-g5wc)). Currently
-  accepted deliberately; needs an explicit package upgrade to clear.
-- **The published history is a single commit containing no credentials.** The pre-rotation
-  commit `88e8892` exists only on the local `master` and `archive-full-history` branches and was
-  never pushed. Don't `git push --all`, or push either branch to the public remote.
-- `Doc/` contains design `.xlsx` files and `Supabase_Schema.sql`. Copies of these also exist
-  outside the repository; the committed copies in `Doc/` are the ones in use.
+| Command | Action |
+|---|---|
+| `./skill.sh help` | Display available commands |
+| `./skill.sh build` | Build all projects in the solution |
+| `./skill.sh clean` | Clean all bin/obj directories |
+| `./skill.sh test` | Run test suite with optimal timeout and network configuration |
+| `./skill.sh check-ulid` | Scan the codebase for legacy `long` ID usages |
+| `./skill.sh run-admin` | Launch `MagizineAdmin.Api` |
+| `./skill.sh run-author` | Launch `MagizineAuthor.Api` |
+| `./skill.sh run-public` | Launch `MagizinePublic.Api` |
+| `./skill.sh db-info` | Display database script summary and procedure manifest |

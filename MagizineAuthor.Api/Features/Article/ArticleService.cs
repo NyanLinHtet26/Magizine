@@ -17,7 +17,7 @@ public sealed class ArticleService
     private readonly ILogger<ArticleService> _logger;
 
     // TODO: Extract from HttpContext when Auth is fully active
-    private long AuthorizedAuthorId => 2; // Temporarily hardcoded for Author testing
+    private string AuthorizedAuthorId => "01JAUTHOR00000000000000001"; // Temporarily hardcoded for Author testing
 
     public ArticleService(MagizineDbContext db, DapperService dapperService, ILogger<ArticleService> logger)
     {
@@ -96,6 +96,7 @@ public sealed class ArticleService
 
             var article = new TblArticle
             {
+                ArticleId = Ulid.NewUlid().ToString(),
                 Title = req.Title.Trim(),
                 SubTitle = req.SubTitle?.Trim(),
                 Slug = slug,
@@ -199,7 +200,9 @@ public sealed class ArticleService
     }
 
     private static bool IsUniqueViolation(DbUpdateException ex)
-        => ex.InnerException is Npgsql.PostgresException pg && pg.SqlState == "23505";
+        => (ex.InnerException is Microsoft.Data.SqlClient.SqlException sql && (sql.Number == 2601 || sql.Number == 2627))
+           || (ex.InnerException?.Message.Contains("UNIQUE KEY", StringComparison.OrdinalIgnoreCase) == true)
+           || (ex.InnerException?.Message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase) == true);
 
     private static string Slugify(string input)
     {

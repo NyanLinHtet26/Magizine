@@ -22,10 +22,10 @@ public sealed class RequestArticleService
     {
         try
         {
-            if (req.ArticleCategoryId.HasValue)
+            if (!string.IsNullOrWhiteSpace(req.ArticleCategoryId))
             {
                 var categoryExists = await _db.TblArticleCategories
-                    .AnyAsync(c => c.ArticleCategoryId == req.ArticleCategoryId.Value && !c.IsDeleted, ct);
+                    .AnyAsync(c => c.ArticleCategoryId == req.ArticleCategoryId && !c.IsDeleted, ct);
                 
                 if (!categoryExists)
                 {
@@ -35,6 +35,7 @@ public sealed class RequestArticleService
 
             var request = new TblRequestArticle
             {
+                RequestArticleId = Ulid.NewUlid().ToString(),
                 PitcherName = req.PitcherName.Trim(),
                 PitcherEmail = req.PitcherEmail.Trim(),
                 ProposedTitle = req.ProposedTitle?.Trim(),

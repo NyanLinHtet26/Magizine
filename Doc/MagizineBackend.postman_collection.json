@@ -1,0 +1,1870 @@
+{
+  "info": {
+    "_postman_id": "8e4c1d92-5a7b-4f3e-9c2d-1b6e8a4f0c3a",
+    "name": "L'ÉDITION Magazine Backend API (Full Collection)",
+    "description": "Complete Postman Collection for the **L'ÉDITION Magazine Platform Backend** (.NET 10.0 + SQL Server + Dapper + EF Core).\n\n### Included APIs & Default Base URLs\n1. **MagizineAdmin.Api**: `{{adminBaseUrl}}` (`http://localhost:5024` | HTTPS: `https://localhost:7036`)\n2. **MagizineAuthor.Api**: `{{authorBaseUrl}}` (`http://localhost:5267` | HTTPS: `https://localhost:7137`)\n3. **MagizinePublic.Api**: `{{publicBaseUrl}}` (`http://localhost:5080` | HTTPS: `https://localhost:7080`)\n\n### Features\n- **26-char ULID Identifiers** pre-populated from default SQL Server seed data (`MagizineDB`).\n- **Auto-Chaining Test Scripts**: Running `Create` endpoints automatically updates `{{categoryId}}`, `{{authorId}}`, `{{articleId}}`, `{{articleSlug}}`, and `{{authorArticleId}}` collection variables.\n- **Standard Result<T> Assertions**: Built-in Postman tests verify `HTTP 200`, `RespType: \"Success\"`, and `RespCode: \"MS#000\"`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwtToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "adminBaseUrl",
+      "value": "http://localhost:5024",
+      "type": "string"
+    },
+    {
+      "key": "authorBaseUrl",
+      "value": "http://localhost:5267",
+      "type": "string"
+    },
+    {
+      "key": "publicBaseUrl",
+      "value": "http://localhost:5080",
+      "type": "string"
+    },
+    {
+      "key": "jwtToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "categoryId",
+      "value": "01JCAT00000000000000000001",
+      "type": "string"
+    },
+    {
+      "key": "categorySlug",
+      "value": "beauty",
+      "type": "string"
+    },
+    {
+      "key": "createdCategoryId",
+      "value": "01JCAT00000000000000000001",
+      "type": "string"
+    },
+    {
+      "key": "authorId",
+      "value": "01JAUTHOR00000000000000001",
+      "type": "string"
+    },
+    {
+      "key": "createdAuthorId",
+      "value": "01JAUTHOR00000000000000001",
+      "type": "string"
+    },
+    {
+      "key": "articleId",
+      "value": "01JART00000000000000000001",
+      "type": "string"
+    },
+    {
+      "key": "articleSlug",
+      "value": "the-art-of-quiet-luxury",
+      "type": "string"
+    },
+    {
+      "key": "createdArticleId",
+      "value": "01JART00000000000000000001",
+      "type": "string"
+    },
+    {
+      "key": "authorArticleId",
+      "value": "01JART00000000000000000002",
+      "type": "string"
+    },
+    {
+      "key": "requestArticleId",
+      "value": "01JREQ00000000000000000001",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. MagizineAdmin.Api (Port 5024)",
+      "description": "Back-office editorial administration API (`MagizineAdmin.Api`).\n\nIncludes full CRUD and status workflows for:\n- Article Categories (`/api/admin/article-category`)\n- Authors (`/api/admin/author`)\n- Articles (`/api/admin/article`)\n- Request Articles / Pitches (`/api/admin/requestarticle`)",
+      "item": [
+        {
+          "name": "1.1 Article Category",
+          "description": "Manage article categories (`Tbl_ArticleCategory`).",
+          "item": [
+            {
+              "name": "List Article Categories (Paged)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('RespType is Success (MS#000)', function () {",
+                      "    pm.expect(json.RespType).to.eql('Success');",
+                      "    pm.expect(json.RespCode).to.eql('MS#000');",
+                      "    pm.expect(json.Data.Items).to.be.an('array');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"Page\": 1,\n  \"PageSize\": 20\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{adminBaseUrl}}/api/admin/article-category/List",
+                  "host": [
+                    "{{adminBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "article-category",
+                    "List"
+                  ]
+                },
+                "description": "Returns a paged list of active (non-deleted) article categories ordered by `SortOrder` and `Name`."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Article Category Detail",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('Category detail returned', function () {",
+                      "    pm.expect(json.RespType).to.eql('Success');",
+                      "    pm.expect(json.Data.ArticleCategoryId).to.be.a('string');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"ArticleCategoryId\": \"{{categoryId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{adminBaseUrl}}/api/admin/article-category/Detail",
+                  "host": [
+                    "{{adminBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "article-category",
+                    "Detail"
+                  ]
+                },
+                "description": "Fetches a single article category by its 26-character ULID (`ArticleCategoryId`)."
+              },
+              "response": []
+            },
+            {
+              "name": "Create Article Category",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "if (json.RespType === 'Success' && json.Data) {",
+                      "    pm.collectionVariables.set('createdCategoryId', json.Data.ArticleCategoryId);",
+                      "    console.log('Saved createdCategoryId:', json.Data.ArticleCategoryId);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"Name\": \"Culture\",\n  \"Slug\": \"culture\",\n  \"Description\": \"Essays on contemporary art, architecture, and cultural commentary.\",\n  \"SortOrder\": 4\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{adminBaseUrl}}/api/admin/article-category/Create",
+                  "host": [
+                    "{{adminBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "article-category",
+                    "Create"
+                  ]
+                },
+                "description": "Creates a new article category with a server-generated 26-char ULID. Automatically stores `Data.ArticleCategoryId` into `{{createdCategoryId}}`."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Article Category",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('RespType is Success', function () {",
+                      "    pm.expect(json.RespType).to.eql('Success');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"ArticleCategoryId\": \"{{createdCategoryId}}\",\n  \"Name\": \"Culture & Design\",\n  \"Slug\": \"culture-design\",\n  \"Description\": \"Updated description for contemporary art, design, and architecture.\",\n  \"SortOrder\": 4\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{adminBaseUrl}}/api/admin/article-category/Update",
+                  "host": [
+                    "{{adminBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "article-category",
+                    "Update"
+                  ]
+                },
+                "description": "Updates an existing article category's `Name`, `Slug`, `Description`, and `SortOrder`."
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Article Category (Soft Delete)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"ArticleCategoryId\": \"{{createdCategoryId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{adminBaseUrl}}/api/admin/article-category/Delete",
+                  "host": [
+                    "{{adminBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "article-category",
+                    "Delete"
+                  ]
+                },
+                "description": "Soft-deletes an article category (`IsDeleted = true`). Protected against deletion if non-deleted articles reference this category."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "1.2 Author",
+          "description": "Manage magazine authors (`Tbl_Author`) via Dapper (`fn_get_author_list`, `fn_get_author_by_id`) and EF Core.",
+          "item": [
+            {
+              "name": "List Authors (Filtered & Paged)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('RespType is Success', function () {",
+                      "    pm.expect(json.RespType).to.eql('Success');",
+                      "    pm.expect(json.Data.Items).to.be.an('array');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"Page\": 1,\n  \"PageSize\": 20,\n  \"SearchKeyword\": null,\n  \"IsApproved\": null,\n  \"IsActive\": null\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{adminBaseUrl}}/api/admin/author/List",
+                  "host": [
+                    "{{adminBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "author",
+                    "List"
+                  ]
+                },
+                "description": "Retrieves a paginated list of authors using stored procedure `dbo.fn_get_author_list`. Supports filtering by `SearchKeyword`, `IsApproved`, and `IsActive`."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Author Detail",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('Author detail returned', function () {",
+                      "    pm.expect(json.RespType).to.eql('Success');",
+                      "    pm.expect(json.Data.AuthorId).to.eql(pm.collectionVariables.get('authorId'));",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"AuthorId\": \"{{authorId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{adminBaseUrl}}/api/admin/author/Detail",
+                  "host": [
+                    "{{adminBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "author",
+                    "Detail"
+                  ]
+                },
+                "description": "Retrieves author profile details by 26-char ULID via stored procedure `dbo.fn_get_author_by_id`."
+              },
+              "response": []
+            },
+            {
+              "name": "Create Author",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "if (json.RespType === 'Success' && json.Data && json.Data.AuthorId) {",
+                      "    pm.collectionVariables.set('createdAuthorId', json.Data.AuthorId);",
+                      "    console.log('Saved createdAuthorId:', json.Data.AuthorId);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"FirstName\": \"Clara\",\n  \"LastName\": \"Vance\",\n  \"Email\": \"clara.vance@ledition.com\",\n  \"Password\": \"AuthorPass@123\",\n  \"Title\": \"Architecture & Design Critic\",\n  \"Bio\": \"Clara Vance explores brutalism, warm minimalism, and spatial design.\",\n  \"PhotoUrl\": \"https://images.unsplash.com/photo-1534528741775-53994a69daeb\",\n  \"InstagramUrl\": \"https://instagram.com/claravance\",\n  \"TwitterUrl\": \"https://twitter.com/claravance\",\n  \"WebsiteUrl\": \"https://claravance.com\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{adminBaseUrl}}/api/admin/author/Create",
+                  "host": [
+                    "{{adminBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "author",
+                    "Create"
+                  ]
+                },
+                "description": "Creates a new author account with a BCrypt-hashed password (work factor 12) and auto-generated slug. Stores the new `AuthorId` in `{{createdAuthorId}}`."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Author",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('RespType is Success', function () {",
+                      "    pm.expect(json.RespType).to.eql('Success');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"AuthorId\": \"{{createdAuthorId}}\",\n  \"FirstName\": \"Clara\",\n  \"LastName\": \"Vance\",\n  \"Email\": \"clara.vance@ledition.com\",\n  \"Title\": \"Principal Architecture Critic\",\n  \"Bio\": \"Updated bio: Clara Vance leads architectural commentary at L'ÉDITION.\",\n  \"PhotoUrl\": \"https://images.unsplash.com/photo-1534528741775-53994a69daeb\",\n  \"InstagramUrl\": \"https://instagram.com/claravance\",\n  \"TwitterUrl\": \"https://twitter.com/claravance\",\n  \"WebsiteUrl\": \"https://claravance.com\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{adminBaseUrl}}/api/admin/author/Update",
+                  "host": [
+                    "{{adminBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "author",
+                    "Update"
+                  ]
+                },
+                "description": "Updates an existing author's profile fields and regenerates their slug if their name changed."
+              },
+              "response": []
+            },
+            {
+              "name": "Change Author Status (Approve / Activate)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('RespType is Success', function () {",
+                      "    pm.expect(json.RespType).to.eql('Success');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"AuthorId\": \"{{createdAuthorId}}\",\n  \"IsApproved\": true,\n  \"IsActive\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{adminBaseUrl}}/api/admin/author/ChangeStatus",
+                  "host": [
+                    "{{adminBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "author",
+                    "ChangeStatus"
+                  ]
+                },
+                "description": "Toggles `IsApproved` and `IsActive` flags for an author account."
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Author (Soft Delete)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"AuthorId\": \"{{createdAuthorId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{adminBaseUrl}}/api/admin/author/Delete",
+                  "host": [
+                    "{{adminBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "author",
+                    "Delete"
+                  ]
+                },
+                "description": "Soft-deletes an author (`IsDeleted = true`, `IsActive = false`). Blocked if the author still has active articles."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "1.3 Article",
+          "description": "Full editorial lifecycle management for articles (`Tbl_Article`).",
+          "item": [
+            {
+              "name": "List Articles (Filtered & Paged)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('RespType is Success', function () {",
+                      "    pm.expect(json.RespType).to.eql('Success');",
+                      "    pm.expect(json.Data.Items).to.be.an('array');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"Page\": 1,\n  \"PageSize\": 20,\n  \"SearchKeyword\": null,\n  \"ArticleCategoryId\": null,\n  \"AuthorId\": null,\n  \"Status\": null,\n  \"IsFeatured\": null,\n  \"IsSpotlight\": null\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{adminBaseUrl}}/api/admin/article/List",
+                  "host": [
+                    "{{adminBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "article",
+                    "List"
+                  ]
+                },
+                "description": "Executes `dbo.fn_get_article_list` via Dapper. Supports filtering by keyword, category ULID, author ULID, status (`Draft`, `PendingReview`, `Published`, `Archived`), `IsFeatured`, and `IsSpotlight`."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Article Detail",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('Article detail returned', function () {",
+                      "    pm.expect(json.RespType).to.eql('Success');",
+                      "    pm.expect(json.Data.ArticleId).to.eql(pm.collectionVariables.get('articleId'));",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"ArticleId\": \"{{articleId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{adminBaseUrl}}/api/admin/article/Detail",
+                  "host": [
+                    "{{adminBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "article",
+                    "Detail"
+                  ]
+                },
+                "description": "Fetches full article details by 26-char ULID via `dbo.fn_get_article_by_id`."
+              },
+              "response": []
+            },
+            {
+              "name": "Create Article",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "if (json.RespType === 'Success' && json.Data) {",
+                      "    pm.collectionVariables.set('createdArticleId', json.Data.ArticleId);",
+                      "    pm.collectionVariables.set('articleSlug', json.Data.Slug);",
+                      "    console.log('Saved createdArticleId:', json.Data.ArticleId, 'Slug:', json.Data.Slug);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"Title\": \"The Architecture of Silence\",\n  \"SubTitle\": \"How minimalist spaces shape modern thought\",\n  \"Body\": \"<p>In an era of relentless digital noise, architectural silence has become the ultimate luxury...</p>\",\n  \"PhotoUrl\": \"https://images.unsplash.com/photo-1600585154340-be6161a56a0c\",\n  \"PhotoCaption\": \"Concrete pavilion in Kyoto at dawn.\",\n  \"PhotoCredit\": \"Photo by Kenji Sato\",\n  \"ArticleCategoryId\": \"{{categoryId}}\",\n  \"AuthorId\": \"{{authorId}}\",\n  \"Status\": \"Published\",\n  \"IsFeatured\": true,\n  \"IsSpotlight\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{adminBaseUrl}}/api/admin/article/Create",
+                  "host": [
+                    "{{adminBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "article",
+                    "Create"
+                  ]
+                },
+                "description": "Creates a new article and automatically stores `Data.ArticleId` in `{{createdArticleId}}` and `Data.Slug` in `{{articleSlug}}`."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Article",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('RespType is Success', function () {",
+                      "    pm.expect(json.RespType).to.eql('Success');",
+                      "});",
+                      "if (json.Data && json.Data.Slug) {",
+                      "    pm.collectionVariables.set('articleSlug', json.Data.Slug);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"ArticleId\": \"{{createdArticleId}}\",\n  \"Title\": \"The Architecture of Silence (Revised Edition)\",\n  \"SubTitle\": \"How minimalist spaces and natural light shape modern thought\",\n  \"Body\": \"<p>Revised essay exploring spatial harmony, acoustic stillness, and tactile materials...</p>\",\n  \"PhotoUrl\": \"https://images.unsplash.com/photo-1600585154340-be6161a56a0c\",\n  \"PhotoCaption\": \"Concrete pavilion in Kyoto at dawn.\",\n  \"PhotoCredit\": \"Photo by Kenji Sato\",\n  \"ArticleCategoryId\": \"{{categoryId}}\",\n  \"AuthorId\": \"{{authorId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{adminBaseUrl}}/api/admin/article/Update",
+                  "host": [
+                    "{{adminBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "article",
+                    "Update"
+                  ]
+                },
+                "description": "Updates an article's content, category, or author and updates its slug if the title changed."
+              },
+              "response": []
+            },
+            {
+              "name": "Change Article Status (Publish / Feature / Spotlight)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('RespType is Success', function () {",
+                      "    pm.expect(json.RespType).to.eql('Success');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"ArticleId\": \"{{createdArticleId}}\",\n  \"Status\": \"Published\",\n  \"IsFeatured\": true,\n  \"IsSpotlight\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{adminBaseUrl}}/api/admin/article/ChangeStatus",
+                  "host": [
+                    "{{adminBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "article",
+                    "ChangeStatus"
+                  ]
+                },
+                "description": "Changes an article's editorial status (`Draft`, `PendingReview`, `Published`, `Archived`) and toggles `IsFeatured` / `IsSpotlight`. Sets `PublishedAt` automatically when transitioning to `Published`."
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Article (Soft Delete)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"ArticleId\": \"{{createdArticleId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{adminBaseUrl}}/api/admin/article/Delete",
+                  "host": [
+                    "{{adminBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "article",
+                    "Delete"
+                  ]
+                },
+                "description": "Soft-deletes an article (`IsDeleted = true`, `Status = Archived`, `IsFeatured = false`, `IsSpotlight = false`)."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "1.4 Request Article (Pitches)",
+          "description": "Review and manage reader/writer article pitches (`Tbl_RequestArticle`).",
+          "item": [
+            {
+              "name": "List Request Articles (Filtered & Paged)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('RespType is Success', function () {",
+                      "    pm.expect(json.RespType).to.eql('Success');",
+                      "    pm.expect(json.Data.Items).to.be.an('array');",
+                      "});",
+                      "if (json.Data && json.Data.Items && json.Data.Items.length > 0) {",
+                      "    pm.collectionVariables.set('requestArticleId', json.Data.Items[0].RequestArticleId);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"Page\": 1,\n  \"PageSize\": 20,\n  \"Status\": null,\n  \"SearchKeyword\": null\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{adminBaseUrl}}/api/admin/requestarticle/List",
+                  "host": [
+                    "{{adminBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "requestarticle",
+                    "List"
+                  ]
+                },
+                "description": "Retrieves a paginated list of submitted article pitches via `dbo.fn_get_request_article_list`."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Request Article Detail",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('RequestArticle detail returned', function () {",
+                      "    pm.expect(json.RespType).to.eql('Success');",
+                      "    pm.expect(json.Data.RequestArticleId).to.be.a('string');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"RequestArticleId\": \"{{requestArticleId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{adminBaseUrl}}/api/admin/requestarticle/Detail",
+                  "host": [
+                    "{{adminBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "requestarticle",
+                    "Detail"
+                  ]
+                },
+                "description": "Fetches a single pitch submission by its 26-char ULID via `dbo.fn_get_request_article_by_id`."
+              },
+              "response": []
+            },
+            {
+              "name": "Review Request Article (Approve / Reject)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('Pitch reviewed successfully', function () {",
+                      "    pm.expect(json.RespType).to.eql('Success');",
+                      "    pm.expect(json.Data.Status).to.eql('Approved');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"RequestArticleId\": \"{{requestArticleId}}\",\n  \"Status\": \"Approved\",\n  \"AdminNotes\": \"Strong editorial voice and timely topic. Approved for commissioning.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{adminBaseUrl}}/api/admin/requestarticle/Review",
+                  "host": [
+                    "{{adminBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "requestarticle",
+                    "Review"
+                  ]
+                },
+                "description": "Updates the review status (`Pending`, `Approved`, `Rejected`), `AdminNotes`, `ReviewedAt`, and `ReviewedByAdminId` for a pitch."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "1.5 OpenAPI & Scalar Docs (Admin)",
+          "item": [
+            {
+              "name": "Get Admin OpenAPI v1 JSON",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{adminBaseUrl}}/openapi/v1.json",
+                  "host": [
+                    "{{adminBaseUrl}}"
+                  ],
+                  "path": [
+                    "openapi",
+                    "v1.json"
+                  ]
+                },
+                "description": "Fetches the generated OpenAPI v1 specification JSON for `MagizineAdmin.Api` (Development environment)."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Admin Scalar API Reference UI",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{adminBaseUrl}}/scalar/v1",
+                  "host": [
+                    "{{adminBaseUrl}}"
+                  ],
+                  "path": [
+                    "scalar",
+                    "v1"
+                  ]
+                },
+                "description": "Loads the interactive Scalar API Reference UI for `MagizineAdmin.Api`."
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. MagizineAuthor.Api (Port 5267)",
+      "description": "Author Portal API (`MagizineAuthor.Api`).\n\nStrictly scopes article queries and mutations to the authenticated author (`AuthorizedAuthorId = 01JAUTHOR00000000000000001`).",
+      "item": [
+        {
+          "name": "2.1 Article Category (Author Dropdown)",
+          "item": [
+            {
+              "name": "Get Active Categories Dropdown List",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('Categories list returned', function () {",
+                      "    pm.expect(json.RespType).to.eql('Success');",
+                      "    pm.expect(json.Data).to.be.an('array');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{authorBaseUrl}}/api/author/article-category/list",
+                  "host": [
+                    "{{authorBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "author",
+                    "article-category",
+                    "list"
+                  ]
+                },
+                "description": "Returns all active article categories (`Result<List<ArticleCategoryResModel>>`) to populate the category selector when an author writes a draft."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "2.2 Author Articles (Drafts & Submissions)",
+          "item": [
+            {
+              "name": "List My Articles (Paged)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('Author articles returned', function () {",
+                      "    pm.expect(json.RespType).to.eql('Success');",
+                      "    pm.expect(json.Data.Items).to.be.an('array');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"Page\": 1,\n  \"PageSize\": 20,\n  \"SearchKeyword\": null,\n  \"ArticleCategoryId\": null,\n  \"Status\": null\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{authorBaseUrl}}/api/author/article/List",
+                  "host": [
+                    "{{authorBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "author",
+                    "article",
+                    "List"
+                  ]
+                },
+                "description": "Lists articles belonging strictly to the logged-in author (`AuthorizedAuthorId`)."
+              },
+              "response": []
+            },
+            {
+              "name": "Get My Article Detail",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('My article detail returned', function () {",
+                      "    pm.expect(json.RespType).to.eql('Success');",
+                      "    pm.expect(json.Data.ArticleId).to.be.a('string');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"ArticleId\": \"{{authorArticleId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{authorBaseUrl}}/api/author/article/Detail",
+                  "host": [
+                    "{{authorBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "author",
+                    "article",
+                    "Detail"
+                  ]
+                },
+                "description": "Retrieves an article by ID only if it belongs to the authenticated author."
+              },
+              "response": []
+            },
+            {
+              "name": "Create Article Draft",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "if (json.RespType === 'Success' && json.Data) {",
+                      "    pm.collectionVariables.set('authorArticleId', json.Data.ArticleId);",
+                      "    console.log('Saved authorArticleId:', json.Data.ArticleId);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"Title\": \"Ceramics and the Tactile Table\",\n  \"SubTitle\": \"Why imperfect stoneware is replacing fine porcelain\",\n  \"Body\": \"<p>Across independent studios, potters are embracing raw clay bodies and wood-fired glazes...</p>\",\n  \"PhotoUrl\": \"https://images.unsplash.com/photo-1578749556568-bc2c40e68b61\",\n  \"PhotoCaption\": \"Hand-thrown stoneware bowls in natural light.\",\n  \"PhotoCredit\": \"Photo by Elena Rostova\",\n  \"ArticleCategoryId\": \"{{categoryId}}\",\n  \"AuthorId\": \"{{authorId}}\",\n  \"Status\": \"Draft\",\n  \"IsFeatured\": false,\n  \"IsSpotlight\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{authorBaseUrl}}/api/author/article/Create",
+                  "host": [
+                    "{{authorBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "author",
+                    "article",
+                    "Create"
+                  ]
+                },
+                "description": "Creates a new article forced to `Status = Draft`, `IsFeatured = false`, `IsSpotlight = false`, and `AuthorId = AuthorizedAuthorId`. Saves the new `ArticleId` to `{{authorArticleId}}`."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Article Draft",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('Draft updated successfully', function () {",
+                      "    pm.expect(json.RespType).to.eql('Success');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"ArticleId\": \"{{authorArticleId}}\",\n  \"Title\": \"Ceramics and the Tactile Table (Updated Draft)\",\n  \"SubTitle\": \"Why imperfect stoneware is replacing fine porcelain in modern dining\",\n  \"Body\": \"<p>Updated draft with studio interviews from Kyoto and Copenhagen...</p>\",\n  \"PhotoUrl\": \"https://images.unsplash.com/photo-1578749556568-bc2c40e68b61\",\n  \"PhotoCaption\": \"Hand-thrown stoneware bowls in natural light.\",\n  \"PhotoCredit\": \"Photo by Elena Rostova\",\n  \"ArticleCategoryId\": \"{{categoryId}}\",\n  \"AuthorId\": \"{{authorId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{authorBaseUrl}}/api/author/article/Update",
+                  "host": [
+                    "{{authorBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "author",
+                    "article",
+                    "Update"
+                  ]
+                },
+                "description": "Updates an author's own article draft. Note: Published articles cannot be edited directly by authors."
+              },
+              "response": []
+            },
+            {
+              "name": "Submit Draft For Review",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('Submitted for review', function () {",
+                      "    pm.expect(json.RespType).to.eql('Success');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"ArticleId\": \"{{authorArticleId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{authorBaseUrl}}/api/author/article/SubmitForReview",
+                  "host": [
+                    "{{authorBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "author",
+                    "article",
+                    "SubmitForReview"
+                  ]
+                },
+                "description": "Transitions an author's `Draft` article to `PendingReview` so editors can review and publish it."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "2.3 OpenAPI Spec (Author)",
+          "item": [
+            {
+              "name": "Get Author OpenAPI v1 JSON",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{authorBaseUrl}}/openapi/v1.json",
+                  "host": [
+                    "{{authorBaseUrl}}"
+                  ],
+                  "path": [
+                    "openapi",
+                    "v1.json"
+                  ]
+                },
+                "description": "Fetches the generated OpenAPI v1 specification JSON for `MagizineAuthor.Api`."
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. MagizinePublic.Api (Port 5080)",
+      "description": "Public Reader API (`MagizinePublic.Api`).\n\nProvides unauthenticated read access to published articles, active categories, and public article pitch submissions.",
+      "item": [
+        {
+          "name": "3.1 Public Article Categories",
+          "item": [
+            {
+              "name": "List All Active Categories",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('Categories returned', function () {",
+                      "    pm.expect(json.RespType).to.eql('Success');",
+                      "    pm.expect(json.Data).to.be.an('array');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{publicBaseUrl}}/api/public/article-category/list",
+                  "host": [
+                    "{{publicBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "public",
+                    "article-category",
+                    "list"
+                  ]
+                },
+                "description": "Returns all active article categories ordered by `SortOrder` and `Name`."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Category By Slug",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('Category returned by slug', function () {",
+                      "    pm.expect(json.RespType).to.eql('Success');",
+                      "    pm.expect(json.Data.Slug).to.eql(pm.collectionVariables.get('categorySlug'));",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{publicBaseUrl}}/api/public/article-category/{{categorySlug}}",
+                  "host": [
+                    "{{publicBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "public",
+                    "article-category",
+                    "{{categorySlug}}"
+                  ]
+                },
+                "description": "Fetches a single active category by its URL slug (e.g., `beauty`, `health-care`, `musing`)."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "3.2 Public Articles",
+          "item": [
+            {
+              "name": "List Published Articles (Paged & Filtered)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('Published articles returned', function () {",
+                      "    pm.expect(json.RespType).to.eql('Success');",
+                      "    pm.expect(json.Data.Items).to.be.an('array');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{publicBaseUrl}}/api/public/article/list?Page=1&PageSize=20",
+                  "host": [
+                    "{{publicBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "public",
+                    "article",
+                    "list"
+                  ],
+                  "query": [
+                    {
+                      "key": "Page",
+                      "value": "1",
+                      "description": "1-based page number"
+                    },
+                    {
+                      "key": "PageSize",
+                      "value": "20",
+                      "description": "Items per page (max 100)"
+                    },
+                    {
+                      "key": "SearchKeyword",
+                      "value": "",
+                      "description": "Optional keyword search in Title or SubTitle",
+                      "disabled": true
+                    },
+                    {
+                      "key": "ArticleCategoryId",
+                      "value": "{{categoryId}}",
+                      "description": "Optional 26-char Category ULID filter",
+                      "disabled": true
+                    },
+                    {
+                      "key": "AuthorId",
+                      "value": "{{authorId}}",
+                      "description": "Optional 26-char Author ULID filter",
+                      "disabled": true
+                    },
+                    {
+                      "key": "IsFeatured",
+                      "value": "true",
+                      "description": "Optional filter for featured articles",
+                      "disabled": true
+                    },
+                    {
+                      "key": "IsSpotlight",
+                      "value": "true",
+                      "description": "Optional filter for spotlight articles",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Returns only `Published` articles via `dbo.fn_get_article_list` with optional query parameters for search, category, author, featured, and spotlight."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Published Article By Slug",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('Published article returned by slug', function () {",
+                      "    pm.expect(json.RespType).to.eql('Success');",
+                      "    pm.expect(json.Data.Status).to.eql('Published');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{publicBaseUrl}}/api/public/article/{{articleSlug}}",
+                  "host": [
+                    "{{publicBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "public",
+                    "article",
+                    "{{articleSlug}}"
+                  ]
+                },
+                "description": "Fetches a single `Published` article by its URL slug (e.g., `the-art-of-quiet-luxury`) via `dbo.fn_get_article_by_slug`."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "3.3 Public Request Article (Submit Pitch)",
+          "item": [
+            {
+              "name": "Submit Article Pitch",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('Pitch submitted successfully', function () {",
+                      "    pm.expect(json.RespType).to.eql('Success');",
+                      "    pm.expect(json.RespCode).to.eql('MS#000');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"PitcherName\": \"Julian Mercer\",\n  \"PitcherEmail\": \"julian.mercer@example.com\",\n  \"ProposedTitle\": \"The Revival of Analog Print Culture in Tokyo\",\n  \"PitchBody\": \"An exploration of independent bookbinders and paper mills preserving centuries-old techniques in modern Tokyo.\",\n  \"ArticleCategoryId\": \"{{categoryId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{publicBaseUrl}}/api/public/requestarticle/submit",
+                  "host": [
+                    "{{publicBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "public",
+                    "requestarticle",
+                    "submit"
+                  ]
+                },
+                "description": "Submits a new article pitch from the public site with initial `Status = Pending`."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "3.4 OpenAPI & Scalar Docs (Public)",
+          "item": [
+            {
+              "name": "Get Public OpenAPI v1 JSON",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{publicBaseUrl}}/openapi/v1.json",
+                  "host": [
+                    "{{publicBaseUrl}}"
+                  ],
+                  "path": [
+                    "openapi",
+                    "v1.json"
+                  ]
+                },
+                "description": "Fetches the generated OpenAPI v1 specification JSON for `MagizinePublic.Api`."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Public Scalar API Reference UI",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{publicBaseUrl}}/scalar/v1",
+                  "host": [
+                    "{{publicBaseUrl}}"
+                  ],
+                  "path": [
+                    "scalar",
+                    "v1"
+                  ]
+                },
+                "description": "Loads the interactive Scalar API Reference UI for `MagizinePublic.Api`."
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

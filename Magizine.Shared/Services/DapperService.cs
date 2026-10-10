@@ -2,18 +2,18 @@ using System.Data;
 using Dapper;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Npgsql;
+using Microsoft.Data.SqlClient;
 
 namespace Magizine.Shared.Services;
 
 /// <summary>
-/// A generic Dapper wrapper for high-performance reading via PostgreSQL Stored Procedures / Functions.
+/// A generic Dapper wrapper for high-performance reading via SQL Server / Database Stored Procedures.
 /// Used for migrating heavy GET requests away from EF Core to raw SQL.
 /// </summary>
 public class DapperService
 {
-    private readonly string _connectionString;
-    private readonly ILogger<DapperService> _logger;
+    private readonly string _connectionString = string.Empty;
+    private readonly ILogger<DapperService>? _logger;
 
     public DapperService() { } // Empty constructor for mocking
 
@@ -36,7 +36,7 @@ public class DapperService
     {
         try
         {
-            await using var db = new NpgsqlConnection(_connectionString);
+            await using var db = new SqlConnection(_connectionString);
             return await db.QueryFirstOrDefaultAsync<T>(
                 query, 
                 parameters, 
@@ -44,7 +44,7 @@ public class DapperService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Dapper Error in GetFirstOrDefaultAsync for {Query}", query);
+            _logger?.LogError(ex, "Dapper Error in GetFirstOrDefaultAsync for {Query}", query);
             throw;
         }
     }
@@ -56,7 +56,7 @@ public class DapperService
     {
         try
         {
-            await using var db = new NpgsqlConnection(_connectionString);
+            await using var db = new SqlConnection(_connectionString);
             var result = await db.QueryAsync<T>(
                 query, 
                 parameters, 
@@ -66,7 +66,7 @@ public class DapperService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Dapper Error in GetListAsync for {Query}", query);
+            _logger?.LogError(ex, "Dapper Error in GetListAsync for {Query}", query);
             throw;
         }
     }
@@ -84,7 +84,7 @@ public class DapperService
         try
         {
             long totalCount = 0;
-            await using var db = new NpgsqlConnection(_connectionString);
+            await using var db = new SqlConnection(_connectionString);
             
             var result = await db.QueryAsync<long, T, T>(
                 query, 
@@ -101,7 +101,7 @@ public class DapperService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Dapper Error in GetPagedListAsync for {Query}", query);
+            _logger?.LogError(ex, "Dapper Error in GetPagedListAsync for {Query}", query);
             throw;
         }
     }
@@ -113,7 +113,7 @@ public class DapperService
     {
         try
         {
-            await using var db = new NpgsqlConnection(_connectionString);
+            await using var db = new SqlConnection(_connectionString);
             await using var multi = await db.QueryMultipleAsync(
                 query, 
                 parameters, 
@@ -126,7 +126,7 @@ public class DapperService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Dapper Error in GetMultipleListAsync for {Query}", query);
+            _logger?.LogError(ex, "Dapper Error in GetMultipleListAsync for {Query}", query);
             throw;
         }
     }
@@ -138,7 +138,7 @@ public class DapperService
     {
         try
         {
-            await using var db = new NpgsqlConnection(_connectionString);
+            await using var db = new SqlConnection(_connectionString);
             return await db.ExecuteAsync(
                 query, 
                 parameters, 
@@ -146,7 +146,7 @@ public class DapperService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Dapper Error in ExecuteAsync for {Query}", query);
+            _logger?.LogError(ex, "Dapper Error in ExecuteAsync for {Query}", query);
             throw;
         }
     }

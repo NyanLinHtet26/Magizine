@@ -31,14 +31,7 @@ public class ArticleCategoryService
         _httpContextAccessor = httpContextAccessor;
     }
 
-    private long AuthorizedAdminId
-    {
-        get
-        {
-            var sub = _httpContextAccessor.HttpContext?.User?.FindFirst(MagizineClaims.Subject)?.Value;
-            return long.TryParse(sub, out var id) ? id : 0;
-        }
-    }
+    private string? AuthorizedAdminId => _httpContextAccessor.HttpContext?.User?.FindFirst(MagizineClaims.Subject)?.Value;
 
     public async Task<Result<PagedResult<ArticleCategoryResModel>>> GetArticleCategoryList(PageRequest reqModel, CancellationToken ct = default)
     {
@@ -112,6 +105,7 @@ public class ArticleCategoryService
 
             var category = new TblArticleCategory
             {
+                ArticleCategoryId = Ulid.NewUlid().ToString(),
                 Name = req.Name,
                 Slug = slug,
                 Description = req.Description,
@@ -214,7 +208,7 @@ public class ArticleCategoryService
             category.DeletedAt = DateTime.UtcNow;
             
             var adminId = AuthorizedAdminId;
-            if (adminId > 0)
+            if (!string.IsNullOrWhiteSpace(adminId))
             {
                 category.DeletedByAdminId = adminId;
             }
@@ -230,7 +224,9 @@ public class ArticleCategoryService
     }
 
     private static bool IsUniqueViolation(DbUpdateException ex)
-        => ex.InnerException is Npgsql.PostgresException pg && pg.SqlState == "23505";
+        => (ex.InnerException is Microsoft.Data.SqlClient.SqlException sql && (sql.Number == 2601 || sql.Number == 2627))
+           || (ex.InnerException?.Message.Contains("UNIQUE KEY", StringComparison.OrdinalIgnoreCase) == true)
+           || (ex.InnerException?.Message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase) == true);
 
     private static string Slugify(string input)
     {

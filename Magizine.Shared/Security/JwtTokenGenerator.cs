@@ -49,9 +49,9 @@ public sealed class JwtTokenGenerator(IOptions<JwtOptions> options, TimeProvider
     /// Role name matching an <c>EnumAdminRole</c> member for admins, or the author role name.
     /// </param>
     /// <param name="sessionId">Existing session to reuse; a new id is generated when omitted.</param>
-    public AccessToken Generate(long userId, string userName, string role, string? sessionId = null)
+    public AccessToken Generate(string userId, string userName, string role, string? sessionId = null)
     {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(userId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         ArgumentException.ThrowIfNullOrWhiteSpace(userName);
         ArgumentException.ThrowIfNullOrWhiteSpace(role);
 
@@ -63,7 +63,7 @@ public sealed class JwtTokenGenerator(IOptions<JwtOptions> options, TimeProvider
 
         var claims = new List<Claim>
         {
-            new(MagizineClaims.Subject, userId.ToString(CultureInfo.InvariantCulture)),
+            new(MagizineClaims.Subject, userId),
             new(MagizineClaims.SessionId, jti),
             new(MagizineClaims.UserName, userName),
             new(MagizineClaims.Role, role),

@@ -73,7 +73,7 @@ public class ArticleCategoryServiceTests : IDisposable
         
         mockDb.Setup(d => d.TblArticleCategories).Returns(_dbContext.TblArticleCategories);
         mockDb.Setup(d => d.SaveChangesAsync(It.IsAny<CancellationToken>()))
-              .ThrowsAsync(new DbUpdateException("Duplicate", new Npgsql.PostgresException("23505", "error", "error", "23505")));
+              .ThrowsAsync(new DbUpdateException("Duplicate", new InvalidOperationException("Violation of UNIQUE KEY constraint. Cannot insert duplicate key in object.")));
               
         var serviceWithMockDb = new ArticleCategoryService(mockDb.Object, _mockDapperService.Object, _mockLogger.Object, _mockHttpContextAccessor.Object);
         
@@ -87,7 +87,7 @@ public class ArticleCategoryServiceTests : IDisposable
     [Fact]
     public async Task Delete_PerformsSoftDelete()
     {
-        var category = new TblArticleCategory { Name = "ToDelete", Slug = "to-delete" };
+        var category = new TblArticleCategory { ArticleCategoryId = Ulid.NewUlid().ToString(), Name = "ToDelete", Slug = "to-delete" };
         _dbContext.TblArticleCategories.Add(category);
         await _dbContext.SaveChangesAsync();
 
@@ -99,13 +99,13 @@ public class ArticleCategoryServiceTests : IDisposable
         var inDb = await _dbContext.TblArticleCategories.IgnoreQueryFilters().FirstAsync(c => c.ArticleCategoryId == category.ArticleCategoryId);
         Assert.True(inDb.IsDeleted);
         Assert.NotNull(inDb.DeletedAt);
-        Assert.Equal(123, inDb.DeletedByAdminId); // From the mock HTTP Context Subject claim
+        Assert.Equal("123", inDb.DeletedByAdminId); // From the mock HTTP Context Subject claim
     }
 
     [Fact]
     public async Task Update_ModifiesExistingRecord()
     {
-        var category = new TblArticleCategory { Name = "Old Name", Slug = "old-name" };
+        var category = new TblArticleCategory { ArticleCategoryId = Ulid.NewUlid().ToString(), Name = "Old Name", Slug = "old-name" };
         _dbContext.TblArticleCategories.Add(category);
         await _dbContext.SaveChangesAsync();
 
@@ -130,7 +130,7 @@ public class ArticleCategoryServiceTests : IDisposable
     [Fact]
     public async Task GetById_ReturnsNotFound_WhenIdDoesNotExist()
     {
-        var req = new ArticleCategoryDetailReqModel { ArticleCategoryId = 999 };
+        var req = new ArticleCategoryDetailReqModel { ArticleCategoryId = "01JNONEXISTENT000000000000" };
         
         var result = await _service.GetArticleCategoryById(req);
 

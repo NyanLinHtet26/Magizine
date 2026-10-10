@@ -8,7 +8,7 @@ namespace Magizine.DataBase;
 public static class DependencyInjection
 {
     /// <summary>
-    /// Registers <see cref="MagizineDbContext"/> against Npgsql/PostgreSQL. The DbContext is
+    /// Registers <see cref="MagizineDbContext"/> against Microsoft SQL Server. The DbContext is
     /// the derived type so the hand-written soft-delete query filters are applied; the
     /// scaffolded AppDbContext supplies the mappings. Shared by every API in the solution so
     /// the connection-string key and provider wiring are defined in exactly one place.
@@ -31,7 +31,7 @@ public static class DependencyInjection
                 + "--project <path-to-csproj>");
         }
 
-        services.AddDbContext<MagizineDbContext>(options => options.UseNpgsql(connectionString));
+        services.AddDbContext<MagizineDbContext>(options => options.UseSqlServer(connectionString));
         services.AddScoped<DapperService>();
 
         return services;

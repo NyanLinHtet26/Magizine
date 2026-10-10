@@ -5,7 +5,7 @@ namespace Magizine.DataBase.Models;
 
 public partial class TblAd
 {
-    public long AdId { get; set; }
+    public string AdId { get; set; } = null!;
 
     public string Title { get; set; } = null!;
 
@@ -15,11 +15,11 @@ public partial class TblAd
 
     public string Placement { get; set; } = null!;
 
-    public long? ArticleCategoryId { get; set; }
+    public string? ArticleCategoryId { get; set; }
 
-    public DateTime? StartDate { get; set; }
+    public DateTimeOffset? StartDate { get; set; }
 
-    public DateTime? EndDate { get; set; }
+    public DateTimeOffset? EndDate { get; set; }
 
     public bool IsActive { get; set; }
 
@@ -27,15 +27,15 @@ public partial class TblAd
 
     public int ImpressionCount { get; set; }
 
-    public DateTime CreatedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
 
-    public DateTime? UpdatedAt { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
 
     public bool IsDeleted { get; set; }
 
-    public DateTime? DeletedAt { get; set; }
+    public DateTimeOffset? DeletedAt { get; set; }
 
-    public long? DeletedByAdminId { get; set; }
+    public string? DeletedByAdminId { get; set; }
 
     public virtual TblArticleCategory? ArticleCategory { get; set; }
 

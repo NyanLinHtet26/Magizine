@@ -105,7 +105,7 @@ public sealed class JwtTests
         };
 
         var generator = new JwtTokenGenerator(Options.Create(opts), TimeProvider.System);
-        var token = generator.Generate(42, "adminuser", "SuperAdmin");
+        var token = generator.Generate("01JADMIN000000000000000001", "adminuser", "SuperAdmin");
 
         token.Should().NotBeNull();
         token.Token.Should().NotBeNullOrEmpty();
@@ -118,7 +118,7 @@ public sealed class JwtTests
 
         jwt.Issuer.Should().Be("iss");
         jwt.Audiences.Should().Contain("aud");
-        jwt.Claims.Should().Contain(c => c.Type == "sub" && c.Value == "42");
+        jwt.Claims.Should().Contain(c => c.Type == "sub" && c.Value == "01JADMIN000000000000000001");
         jwt.Claims.Should().Contain(c => c.Type == "username" && c.Value == "adminuser");
         jwt.Claims.Should().Contain(c => c.Type == "role" && c.Value == "SuperAdmin");
         jwt.Claims.Should().Contain(c => c.Type == "typ" && c.Value == "access");
@@ -138,13 +138,13 @@ public sealed class JwtTests
 
         var generator = new JwtTokenGenerator(Options.Create(opts), TimeProvider.System);
 
-        var act1 = () => generator.Generate(0, "user", "Admin");
-        act1.Should().Throw<ArgumentOutOfRangeException>();
+        var act1 = () => generator.Generate("", "user", "Admin");
+        act1.Should().Throw<ArgumentException>();
 
-        var act2 = () => generator.Generate(1, "", "Admin");
+        var act2 = () => generator.Generate("01JADMIN000000000000000001", "", "Admin");
         act2.Should().Throw<ArgumentException>();
 
-        var act3 = () => generator.Generate(1, "user", "");
+        var act3 = () => generator.Generate("01JADMIN000000000000000001", "user", "");
         act3.Should().Throw<ArgumentException>();
     }
 
@@ -160,8 +160,8 @@ public sealed class JwtTests
         };
 
         var generator = new JwtTokenGenerator(Options.Create(opts), TimeProvider.System);
-        var t1 = generator.Generate(1, "user", "Admin", "fixed-session-id");
-        var t2 = generator.Generate(1, "user", "Admin", "fixed-session-id");
+        var t1 = generator.Generate("01JADMIN000000000000000001", "user", "Admin", "fixed-session-id");
+        var t2 = generator.Generate("01JADMIN000000000000000001", "user", "Admin", "fixed-session-id");
 
         t1.SessionId.Should().Be("fixed-session-id");
         t2.SessionId.Should().Be("fixed-session-id");

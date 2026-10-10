@@ -15,7 +15,7 @@ public sealed class RequestArticleService
     private readonly ILogger<RequestArticleService> _logger;
 
     // TODO: Extract from HttpContext when Auth is fully active
-    private long AuthorizedAdminId => 1;
+    private string AuthorizedAdminId => "01JADMIN000000000000000001";
 
     public RequestArticleService(MagizineDbContext db, DapperService dapperService, ILogger<RequestArticleService> logger)
     {

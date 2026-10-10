@@ -5,7 +5,7 @@ namespace Magizine.DataBase.Models;
 
 public partial class TblContactMessage
 {
-    public long ContactMessageId { get; set; }
+    public string ContactMessageId { get; set; } = null!;
 
     public string SenderName { get; set; } = null!;
 
@@ -17,19 +17,19 @@ public partial class TblContactMessage
 
     public bool IsRead { get; set; }
 
-    public DateTime? ReadAt { get; set; }
+    public DateTimeOffset? ReadAt { get; set; }
 
-    public long? ReadByAdminId { get; set; }
+    public string? ReadByAdminId { get; set; }
 
-    public DateTime CreatedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
 
-    public DateTime? UpdatedAt { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
 
     public bool IsDeleted { get; set; }
 
-    public DateTime? DeletedAt { get; set; }
+    public DateTimeOffset? DeletedAt { get; set; }
 
-    public long? DeletedByAdminId { get; set; }
+    public string? DeletedByAdminId { get; set; }
 
     public virtual TblAdmin? DeletedByAdmin { get; set; }
 

@@ -17,7 +17,7 @@ public sealed class ArticleService
     private readonly ILogger<ArticleService> _logger;
 
     // TODO: Extract from HttpContext when Auth is fully active
-    private long AuthorizedAdminId => 1;
+    private string AuthorizedAdminId => "01JADMIN000000000000000001";
 
     public ArticleService(MagizineDbContext db, DapperService dapperService, ILogger<ArticleService> logger)
     {
@@ -64,7 +64,7 @@ public sealed class ArticleService
         {
             var article = await _dapperService.GetFirstOrDefaultAsync<ArticleResModel>(
                 "fn_get_article_by_id", 
-                new { p_article_id = req.ArticleId, p_author_id = (long?)null });
+                new { p_article_id = req.ArticleId, p_author_id = (string?)null });
 
             if (article == null)
             {
@@ -100,6 +100,7 @@ public sealed class ArticleService
 
             var article = new TblArticle
             {
+                ArticleId = Ulid.NewUlid().ToString(),
                 Title = req.Title.Trim(),
                 SubTitle = req.SubTitle?.Trim(),
                 Slug = slug,
@@ -229,7 +230,7 @@ public sealed class ArticleService
             article.DeletedAt = DateTime.UtcNow;
             
             var adminId = AuthorizedAdminId;
-            if (adminId > 0)
+            if (!string.IsNullOrWhiteSpace(adminId))
             {
                 article.DeletedByAdminId = adminId;
             }
@@ -244,7 +245,9 @@ public sealed class ArticleService
     }
 
     private static bool IsUniqueViolation(DbUpdateException ex)
-        => ex.InnerException is Npgsql.PostgresException pg && pg.SqlState == "23505";
+        => (ex.InnerException is Microsoft.Data.SqlClient.SqlException sql && (sql.Number == 2601 || sql.Number == 2627))
+           || (ex.InnerException?.Message.Contains("UNIQUE KEY", StringComparison.OrdinalIgnoreCase) == true)
+           || (ex.InnerException?.Message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase) == true);
 
     private static string Slugify(string input)
     {

@@ -4,7 +4,7 @@ namespace Magizine.Shared.Models.Author;
 
 public sealed class AuthorResModel
 {
-    public long AuthorId { get; set; }
+    public string AuthorId { get; set; } = null!;
     public string FirstName { get; set; } = null!;
     public string LastName { get; set; } = null!;
     public string Email { get; set; } = null!;
@@ -17,13 +17,13 @@ public sealed class AuthorResModel
     public string Slug { get; set; } = null!;
     public bool IsApproved { get; set; }
     public bool IsActive { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime? UpdatedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
 }
 
 public sealed class AuthorDetailReqModel
 {
-    public long AuthorId { get; set; }
+    public string AuthorId { get; set; } = null!;
 }
 
 public sealed class CreateAuthorReqModel
@@ -42,7 +42,7 @@ public sealed class CreateAuthorReqModel
 
 public sealed class UpdateAuthorReqModel
 {
-    public long AuthorId { get; set; }
+    public string AuthorId { get; set; } = null!;
     public string FirstName { get; set; } = null!;
     public string LastName { get; set; } = null!;
     public string Email { get; set; } = null!;
@@ -56,7 +56,7 @@ public sealed class UpdateAuthorReqModel
 
 public sealed class ChangeAuthorStatusReqModel
 {
-    public long AuthorId { get; set; }
+    public string AuthorId { get; set; } = null!;
     public bool IsApproved { get; set; }
     public bool IsActive { get; set; }
 }

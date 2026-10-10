@@ -5,7 +5,7 @@ namespace Magizine.DataBase.Models;
 
 public partial class TblArticle
 {
-    public long ArticleId { get; set; }
+    public string ArticleId { get; set; } = null!;
 
     public string Title { get; set; } = null!;
 
@@ -21,27 +21,27 @@ public partial class TblArticle
 
     public string? PhotoCredit { get; set; }
 
-    public long ArticleCategoryId { get; set; }
+    public string ArticleCategoryId { get; set; } = null!;
 
-    public long AuthorId { get; set; }
+    public string AuthorId { get; set; } = null!;
 
     public string Status { get; set; } = null!;
 
-    public DateTime? PublishedAt { get; set; }
+    public DateTimeOffset? PublishedAt { get; set; }
 
     public bool IsFeatured { get; set; }
 
     public bool IsSpotlight { get; set; }
 
-    public DateTime CreatedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
 
-    public DateTime? UpdatedAt { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
 
     public bool IsDeleted { get; set; }
 
-    public DateTime? DeletedAt { get; set; }
+    public DateTimeOffset? DeletedAt { get; set; }
 
-    public long? DeletedByAdminId { get; set; }
+    public string? DeletedByAdminId { get; set; }
 
     public virtual TblArticleCategory ArticleCategory { get; set; } = null!;
 

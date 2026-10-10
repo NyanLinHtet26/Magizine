@@ -5,7 +5,7 @@ namespace Magizine.DataBase.Models;
 
 public partial class TblArticleCategory
 {
-    public long ArticleCategoryId { get; set; }
+    public string ArticleCategoryId { get; set; } = null!;
 
     public string Name { get; set; } = null!;
 
@@ -15,15 +15,15 @@ public partial class TblArticleCategory
 
     public int SortOrder { get; set; }
 
-    public DateTime CreatedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
 
-    public DateTime? UpdatedAt { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
 
     public bool IsDeleted { get; set; }
 
-    public DateTime? DeletedAt { get; set; }
+    public DateTimeOffset? DeletedAt { get; set; }
 
-    public long? DeletedByAdminId { get; set; }
+    public string? DeletedByAdminId { get; set; }
 
     public virtual TblAdmin? DeletedByAdmin { get; set; }
 

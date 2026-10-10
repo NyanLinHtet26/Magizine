@@ -12,7 +12,7 @@ public sealed class CreateArticleCategoryReqModel
 
 public sealed class UpdateArticleCategoryReqModel
 {
-    [Required] public long ArticleCategoryId { get; init; }
+    [Required] public string ArticleCategoryId { get; init; } = string.Empty;
     [Required] [MaxLength(20)] public string Name { get; init; } = string.Empty;
     [MaxLength(30)] public string? Slug { get; init; }
     [MaxLength(200)] public string? Description { get; init; }
@@ -21,16 +21,16 @@ public sealed class UpdateArticleCategoryReqModel
 
 public sealed class ArticleCategoryDetailReqModel
 {
-    [Required] public long ArticleCategoryId { get; init; }
+    [Required] public string ArticleCategoryId { get; init; } = string.Empty;
 }
 
 public sealed class ArticleCategoryResModel
 {
-    public long ArticleCategoryId { get; init; }
+    public string ArticleCategoryId { get; init; } = string.Empty;
     public string Name { get; init; } = string.Empty;
     public string Slug { get; init; } = string.Empty;
     public string? Description { get; init; }
     public int SortOrder { get; init; }
-    public DateTime CreatedAt { get; init; }
-    public DateTime? UpdatedAt { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; init; }
 }

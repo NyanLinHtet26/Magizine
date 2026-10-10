@@ -5,11 +5,11 @@ namespace Magizine.DataBase.Models;
 
 public partial class TblNotification
 {
-    public long NotificationId { get; set; }
+    public string NotificationId { get; set; } = null!;
 
-    public long? RecipientAuthorId { get; set; }
+    public string? RecipientAuthorId { get; set; }
 
-    public long? RecipientAdminId { get; set; }
+    public string? RecipientAdminId { get; set; }
 
     public string Title { get; set; } = null!;
 
@@ -19,21 +19,21 @@ public partial class TblNotification
 
     public bool IsRead { get; set; }
 
-    public DateTime? ReadAt { get; set; }
+    public DateTimeOffset? ReadAt { get; set; }
 
     public string? RelatedEntityType { get; set; }
 
-    public long? RelatedEntityId { get; set; }
+    public string? RelatedEntityId { get; set; }
 
-    public DateTime CreatedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
 
-    public DateTime? UpdatedAt { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
 
     public bool IsDeleted { get; set; }
 
-    public DateTime? DeletedAt { get; set; }
+    public DateTimeOffset? DeletedAt { get; set; }
 
-    public long? DeletedByAdminId { get; set; }
+    public string? DeletedByAdminId { get; set; }
 
     public virtual TblAdmin? DeletedByAdmin { get; set; }
 

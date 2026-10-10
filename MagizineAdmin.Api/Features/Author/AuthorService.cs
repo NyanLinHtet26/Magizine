@@ -19,7 +19,7 @@ public sealed class AuthorService
     private readonly ILogger<AuthorService> _logger;
 
     // TODO: Extract from HttpContext when Auth is fully active
-    private long AuthorizedAdminId => 1; 
+    private string AuthorizedAdminId => "01JADMIN000000000000000001"; 
 
     public AuthorService(
         MagizineDbContext db,
@@ -102,6 +102,7 @@ public sealed class AuthorService
 
             var author = new TblAuthor
             {
+                AuthorId = Ulid.NewUlid().ToString(),
                 FirstName = req.FirstName.Trim(),
                 LastName = req.LastName.Trim(),
                 Email = req.Email.Trim().ToLower(),
@@ -220,7 +221,7 @@ public sealed class AuthorService
             author.DeletedAt = DateTime.UtcNow;
             
             var adminId = AuthorizedAdminId;
-            if (adminId > 0)
+            if (!string.IsNullOrWhiteSpace(adminId))
             {
                 author.DeletedByAdminId = adminId;
             }
@@ -235,7 +236,9 @@ public sealed class AuthorService
     }
 
     private static bool IsUniqueViolation(DbUpdateException ex)
-        => ex.InnerException is Npgsql.PostgresException pg && pg.SqlState == "23505";
+        => (ex.InnerException is Microsoft.Data.SqlClient.SqlException sql && (sql.Number == 2601 || sql.Number == 2627))
+           || (ex.InnerException?.Message.Contains("UNIQUE KEY", StringComparison.OrdinalIgnoreCase) == true)
+           || (ex.InnerException?.Message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase) == true);
 
     private static string Slugify(string input)
     {

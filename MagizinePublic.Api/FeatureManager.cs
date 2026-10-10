@@ -106,6 +106,7 @@ public static class FeatureManager
 
     private static WebApplicationBuilder AddFeatureServices(this WebApplicationBuilder builder)
     {
+        builder.Services.AddMagizineFileStorage(builder.Configuration);
         builder.Services.AddScoped<ArticleCategoryService>();
         builder.Services.AddScoped<ArticleService>();
         builder.Services.AddScoped<RequestArticleService>();

@@ -786,7 +786,7 @@
               "response": []
             },
             {
-              "name": "Create Article",
+              "name": "Create Article (Multipart Form-Data + CoverPhoto & GalleryItems)",
               "event": [
                 {
                   "listen": "test",
@@ -808,20 +808,98 @@
               ],
               "request": {
                 "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
+                "header": [],
                 "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"Title\": \"The Architecture of Silence\",\n  \"SubTitle\": \"How minimalist spaces shape modern thought\",\n  \"Body\": \"<p>In an era of relentless digital noise, architectural silence has become the ultimate luxury...</p>\",\n  \"PhotoUrl\": \"https://images.unsplash.com/photo-1600585154340-be6161a56a0c\",\n  \"PhotoCaption\": \"Concrete pavilion in Kyoto at dawn.\",\n  \"PhotoCredit\": \"Photo by Kenji Sato\",\n  \"ArticleCategoryId\": \"{{categoryId}}\",\n  \"AuthorId\": \"{{authorId}}\",\n  \"Status\": \"Published\",\n  \"IsFeatured\": true,\n  \"IsSpotlight\": false\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "Title",
+                      "value": "The Architecture of Silence",
+                      "type": "text"
+                    },
+                    {
+                      "key": "SubTitle",
+                      "value": "How minimalist spaces shape modern thought",
+                      "type": "text"
+                    },
+                    {
+                      "key": "Body",
+                      "value": "<p>In an era of relentless digital noise, architectural silence has become the ultimate luxury...</p>",
+                      "type": "text"
+                    },
+                    {
+                      "key": "CoverPhoto",
+                      "type": "file",
+                      "src": [],
+                      "description": "Select a cover image file (.jpg, .png, .webp <= 5MB)"
+                    },
+                    {
+                      "key": "PhotoUrl",
+                      "value": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c",
+                      "type": "text",
+                      "description": "Fallback URL if CoverPhoto file is not selected"
+                    },
+                    {
+                      "key": "PhotoCaption",
+                      "value": "Concrete pavilion in Kyoto at dawn.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "PhotoCredit",
+                      "value": "Photo by Kenji Sato",
+                      "type": "text"
+                    },
+                    {
+                      "key": "GalleryItems[0].File",
+                      "type": "file",
+                      "src": [],
+                      "description": "Optional Gallery Photo #1 file (.jpg, .png, .webp)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "GalleryItems[0].Caption",
+                      "value": "Interior courtyard detail.",
+                      "type": "text",
+                      "disabled": true
+                    },
+                    {
+                      "key": "GalleryItems[0].Credit",
+                      "value": "Photo by Kenji Sato",
+                      "type": "text",
+                      "disabled": true
+                    },
+                    {
+                      "key": "GalleryItems[0].SortOrder",
+                      "value": "1",
+                      "type": "text",
+                      "disabled": true
+                    },
+                    {
+                      "key": "ArticleCategoryId",
+                      "value": "{{categoryId}}",
+                      "type": "text"
+                    },
+                    {
+                      "key": "AuthorId",
+                      "value": "{{authorId}}",
+                      "type": "text"
+                    },
+                    {
+                      "key": "Status",
+                      "value": "Published",
+                      "type": "text"
+                    },
+                    {
+                      "key": "IsFeatured",
+                      "value": "true",
+                      "type": "text"
+                    },
+                    {
+                      "key": "IsSpotlight",
+                      "value": "false",
+                      "type": "text"
                     }
-                  }
+                  ]
                 },
                 "url": {
                   "raw": "{{adminBaseUrl}}/api/admin/article/Create",
@@ -835,12 +913,12 @@
                     "Create"
                   ]
                 },
-                "description": "Creates a new article and automatically stores `Data.ArticleId` in `{{createdArticleId}}` and `Data.Slug` in `{{articleSlug}}`."
+                "description": "Creates a new article via `multipart/form-data` supporting direct `CoverPhoto` upload and structured `GalleryItems[i]` multi-photo uploads with compensating file rollback."
               },
               "response": []
             },
             {
-              "name": "Update Article",
+              "name": "Update Article (Multipart Form-Data + CoverPhoto & NewGalleryItems)",
               "event": [
                 {
                   "listen": "test",
@@ -863,20 +941,95 @@
               ],
               "request": {
                 "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
+                "header": [],
                 "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"ArticleId\": \"{{createdArticleId}}\",\n  \"Title\": \"The Architecture of Silence (Revised Edition)\",\n  \"SubTitle\": \"How minimalist spaces and natural light shape modern thought\",\n  \"Body\": \"<p>Revised essay exploring spatial harmony, acoustic stillness, and tactile materials...</p>\",\n  \"PhotoUrl\": \"https://images.unsplash.com/photo-1600585154340-be6161a56a0c\",\n  \"PhotoCaption\": \"Concrete pavilion in Kyoto at dawn.\",\n  \"PhotoCredit\": \"Photo by Kenji Sato\",\n  \"ArticleCategoryId\": \"{{categoryId}}\",\n  \"AuthorId\": \"{{authorId}}\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "ArticleId",
+                      "value": "{{createdArticleId}}",
+                      "type": "text"
+                    },
+                    {
+                      "key": "Title",
+                      "value": "The Architecture of Silence (Revised Edition)",
+                      "type": "text"
+                    },
+                    {
+                      "key": "SubTitle",
+                      "value": "How minimalist spaces and natural light shape modern thought",
+                      "type": "text"
+                    },
+                    {
+                      "key": "Body",
+                      "value": "<p>Revised essay exploring spatial harmony, acoustic stillness, and tactile materials...</p>",
+                      "type": "text"
+                    },
+                    {
+                      "key": "CoverPhoto",
+                      "type": "file",
+                      "src": [],
+                      "description": "Optional new cover image file to replace current cover",
+                      "disabled": true
+                    },
+                    {
+                      "key": "PhotoUrl",
+                      "value": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c",
+                      "type": "text"
+                    },
+                    {
+                      "key": "PhotoCaption",
+                      "value": "Concrete pavilion in Kyoto at dawn.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "PhotoCredit",
+                      "value": "Photo by Kenji Sato",
+                      "type": "text"
+                    },
+                    {
+                      "key": "NewGalleryItems[0].File",
+                      "type": "file",
+                      "src": [],
+                      "description": "Optional new gallery photo to append",
+                      "disabled": true
+                    },
+                    {
+                      "key": "NewGalleryItems[0].Caption",
+                      "value": "New gallery photo caption",
+                      "type": "text",
+                      "disabled": true
+                    },
+                    {
+                      "key": "NewGalleryItems[0].Credit",
+                      "value": "Photo by L'ÉDITION Studio",
+                      "type": "text",
+                      "disabled": true
+                    },
+                    {
+                      "key": "NewGalleryItems[0].SortOrder",
+                      "value": "3",
+                      "type": "text",
+                      "disabled": true
+                    },
+                    {
+                      "key": "RemoveArticlePhotoIds[0]",
+                      "value": "01JAPHT0000000000000000001",
+                      "type": "text",
+                      "description": "Optional ULID of an existing gallery photo to soft-delete",
+                      "disabled": true
+                    },
+                    {
+                      "key": "ArticleCategoryId",
+                      "value": "{{categoryId}}",
+                      "type": "text"
+                    },
+                    {
+                      "key": "AuthorId",
+                      "value": "{{authorId}}",
+                      "type": "text"
                     }
-                  }
+                  ]
                 },
                 "url": {
                   "raw": "{{adminBaseUrl}}/api/admin/article/Update",
@@ -890,7 +1043,7 @@
                     "Update"
                   ]
                 },
-                "description": "Updates an article's content, category, or author and updates its slug if the title changed."
+                "description": "Updates an article's content, replaces cover photo, appends `NewGalleryItems[i]`, or soft-deletes `RemoveArticlePhotoIds`."
               },
               "response": []
             },
@@ -990,7 +1143,55 @@
                     "Delete"
                   ]
                 },
-                "description": "Soft-deletes an article (`IsDeleted = true`, `Status = Archived`, `IsFeatured = false`, `IsSpotlight = false`)."
+                "description": "Soft-deletes an article and all its gallery photos (`IsDeleted = true`)."
+              },
+              "response": []
+            },
+            {
+              "name": "Purge Expired Soft-Deleted Photos (Disk Cleanup)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"RetentionDays\": 30\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{adminBaseUrl}}/api/admin/article/PurgeExpiredPhotos",
+                  "host": [
+                    "{{adminBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "article",
+                    "PurgeExpiredPhotos"
+                  ]
+                },
+                "description": "Permanently deletes physical files on disk and DB rows for soft-deleted `Tbl_ArticlePhoto` records older than `RetentionDays` (default 30 days)."
               },
               "response": []
             }
@@ -1367,7 +1568,7 @@
               "response": []
             },
             {
-              "name": "Create Article Draft",
+              "name": "Create Article Draft (Multipart Form-Data + CoverPhoto & GalleryItems)",
               "event": [
                 {
                   "listen": "test",
@@ -1388,20 +1589,86 @@
               ],
               "request": {
                 "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
+                "header": [],
                 "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"Title\": \"Ceramics and the Tactile Table\",\n  \"SubTitle\": \"Why imperfect stoneware is replacing fine porcelain\",\n  \"Body\": \"<p>Across independent studios, potters are embracing raw clay bodies and wood-fired glazes...</p>\",\n  \"PhotoUrl\": \"https://images.unsplash.com/photo-1578749556568-bc2c40e68b61\",\n  \"PhotoCaption\": \"Hand-thrown stoneware bowls in natural light.\",\n  \"PhotoCredit\": \"Photo by Elena Rostova\",\n  \"ArticleCategoryId\": \"{{categoryId}}\",\n  \"AuthorId\": \"{{authorId}}\",\n  \"Status\": \"Draft\",\n  \"IsFeatured\": false,\n  \"IsSpotlight\": false\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "Title",
+                      "value": "Ceramics and the Tactile Table",
+                      "type": "text"
+                    },
+                    {
+                      "key": "SubTitle",
+                      "value": "Why imperfect stoneware is replacing fine porcelain",
+                      "type": "text"
+                    },
+                    {
+                      "key": "Body",
+                      "value": "<p>Across independent studios, potters are embracing raw clay bodies and wood-fired glazes...</p>",
+                      "type": "text"
+                    },
+                    {
+                      "key": "CoverPhoto",
+                      "type": "file",
+                      "src": [],
+                      "description": "Select a cover image file (.jpg, .png, .webp <= 5MB)"
+                    },
+                    {
+                      "key": "PhotoUrl",
+                      "value": "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61",
+                      "type": "text"
+                    },
+                    {
+                      "key": "PhotoCaption",
+                      "value": "Hand-thrown stoneware bowls in natural light.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "PhotoCredit",
+                      "value": "Photo by Elena Rostova",
+                      "type": "text"
+                    },
+                    {
+                      "key": "GalleryItems[0].File",
+                      "type": "file",
+                      "src": [],
+                      "disabled": true
+                    },
+                    {
+                      "key": "GalleryItems[0].Caption",
+                      "value": "Wood-fired stoneware detail.",
+                      "type": "text",
+                      "disabled": true
+                    },
+                    {
+                      "key": "GalleryItems[0].Credit",
+                      "value": "Photo by Elena Rostova",
+                      "type": "text",
+                      "disabled": true
+                    },
+                    {
+                      "key": "GalleryItems[0].SortOrder",
+                      "value": "1",
+                      "type": "text",
+                      "disabled": true
+                    },
+                    {
+                      "key": "ArticleCategoryId",
+                      "value": "{{categoryId}}",
+                      "type": "text"
+                    },
+                    {
+                      "key": "AuthorId",
+                      "value": "{{authorId}}",
+                      "type": "text"
+                    },
+                    {
+                      "key": "Status",
+                      "value": "Draft",
+                      "type": "text"
                     }
-                  }
+                  ]
                 },
                 "url": {
                   "raw": "{{authorBaseUrl}}/api/author/article/Create",
@@ -1415,12 +1682,12 @@
                     "Create"
                   ]
                 },
-                "description": "Creates a new article forced to `Status = Draft`, `IsFeatured = false`, `IsSpotlight = false`, and `AuthorId = AuthorizedAuthorId`. Saves the new `ArticleId` to `{{authorArticleId}}`."
+                "description": "Creates a new article draft via `multipart/form-data` supporting `CoverPhoto` and `GalleryItems[i]`."
               },
               "response": []
             },
             {
-              "name": "Update Article Draft",
+              "name": "Update Article Draft (Multipart Form-Data + CoverPhoto & NewGalleryItems)",
               "event": [
                 {
                   "listen": "test",
@@ -1440,20 +1707,92 @@
               ],
               "request": {
                 "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
+                "header": [],
                 "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"ArticleId\": \"{{authorArticleId}}\",\n  \"Title\": \"Ceramics and the Tactile Table (Updated Draft)\",\n  \"SubTitle\": \"Why imperfect stoneware is replacing fine porcelain in modern dining\",\n  \"Body\": \"<p>Updated draft with studio interviews from Kyoto and Copenhagen...</p>\",\n  \"PhotoUrl\": \"https://images.unsplash.com/photo-1578749556568-bc2c40e68b61\",\n  \"PhotoCaption\": \"Hand-thrown stoneware bowls in natural light.\",\n  \"PhotoCredit\": \"Photo by Elena Rostova\",\n  \"ArticleCategoryId\": \"{{categoryId}}\",\n  \"AuthorId\": \"{{authorId}}\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "ArticleId",
+                      "value": "{{authorArticleId}}",
+                      "type": "text"
+                    },
+                    {
+                      "key": "Title",
+                      "value": "Ceramics and the Tactile Table (Updated Draft)",
+                      "type": "text"
+                    },
+                    {
+                      "key": "SubTitle",
+                      "value": "Why imperfect stoneware is replacing fine porcelain in modern dining",
+                      "type": "text"
+                    },
+                    {
+                      "key": "Body",
+                      "value": "<p>Updated draft with studio interviews from Kyoto and Copenhagen...</p>",
+                      "type": "text"
+                    },
+                    {
+                      "key": "CoverPhoto",
+                      "type": "file",
+                      "src": [],
+                      "disabled": true
+                    },
+                    {
+                      "key": "PhotoUrl",
+                      "value": "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61",
+                      "type": "text"
+                    },
+                    {
+                      "key": "PhotoCaption",
+                      "value": "Hand-thrown stoneware bowls in natural light.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "PhotoCredit",
+                      "value": "Photo by Elena Rostova",
+                      "type": "text"
+                    },
+                    {
+                      "key": "NewGalleryItems[0].File",
+                      "type": "file",
+                      "src": [],
+                      "disabled": true
+                    },
+                    {
+                      "key": "NewGalleryItems[0].Caption",
+                      "value": "Studio wheel in Copenhagen",
+                      "type": "text",
+                      "disabled": true
+                    },
+                    {
+                      "key": "NewGalleryItems[0].Credit",
+                      "value": "Photo by Elena Rostova",
+                      "type": "text",
+                      "disabled": true
+                    },
+                    {
+                      "key": "NewGalleryItems[0].SortOrder",
+                      "value": "2",
+                      "type": "text",
+                      "disabled": true
+                    },
+                    {
+                      "key": "RemoveArticlePhotoIds[0]",
+                      "value": "01JAPHT0000000000000000001",
+                      "type": "text",
+                      "disabled": true
+                    },
+                    {
+                      "key": "ArticleCategoryId",
+                      "value": "{{categoryId}}",
+                      "type": "text"
+                    },
+                    {
+                      "key": "AuthorId",
+                      "value": "{{authorId}}",
+                      "type": "text"
                     }
-                  }
+                  ]
                 },
                 "url": {
                   "raw": "{{authorBaseUrl}}/api/author/article/Update",
@@ -1467,7 +1806,7 @@
                     "Update"
                   ]
                 },
-                "description": "Updates an author's own article draft. Note: Published articles cannot be edited directly by authors."
+                "description": "Updates an author's own article draft via `multipart/form-data`."
               },
               "response": []
             },

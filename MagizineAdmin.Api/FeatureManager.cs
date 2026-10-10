@@ -255,6 +255,7 @@ public static class FeatureManager
     private static WebApplicationBuilder AddFeatureServices(this WebApplicationBuilder builder)
     {
         builder.Services.AddHttpContextAccessor();
+        builder.Services.AddMagizineFileStorage(builder.Configuration);
         builder.Services.AddScoped<ArticleCategoryService>();
         builder.Services.AddScoped<AuthorService>();
         builder.Services.AddScoped<ArticleService>();

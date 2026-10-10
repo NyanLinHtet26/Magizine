@@ -31,6 +31,7 @@ IF OBJECT_ID('dbo.Tbl_AboutAndAppData', 'U') IS NOT NULL DROP TABLE dbo.Tbl_Abou
 IF OBJECT_ID('dbo.Tbl_Newsletter', 'U') IS NOT NULL DROP TABLE dbo.Tbl_Newsletter;
 IF OBJECT_ID('dbo.Tbl_ContactMessage', 'U') IS NOT NULL DROP TABLE dbo.Tbl_ContactMessage;
 IF OBJECT_ID('dbo.Tbl_RequestArticle', 'U') IS NOT NULL DROP TABLE dbo.Tbl_RequestArticle;
+IF OBJECT_ID('dbo.Tbl_ArticlePhoto', 'U') IS NOT NULL DROP TABLE dbo.Tbl_ArticlePhoto;
 IF OBJECT_ID('dbo.Tbl_Article', 'U') IS NOT NULL DROP TABLE dbo.Tbl_Article;
 IF OBJECT_ID('dbo.Tbl_ArticleCategory', 'U') IS NOT NULL DROP TABLE dbo.Tbl_ArticleCategory;
 IF OBJECT_ID('dbo.Tbl_Author', 'U') IS NOT NULL DROP TABLE dbo.Tbl_Author;
@@ -145,6 +146,28 @@ CREATE UNIQUE NONCLUSTERED INDEX UX_Tbl_Article_Slug_NotDeleted ON dbo.Tbl_Artic
 CREATE NONCLUSTERED INDEX IX_Tbl_Article_CategoryId             ON dbo.Tbl_Article(ArticleCategoryId);
 CREATE NONCLUSTERED INDEX IX_Tbl_Article_AuthorId               ON dbo.Tbl_Article(AuthorId);
 CREATE NONCLUSTERED INDEX IX_Tbl_Article_Status                 ON dbo.Tbl_Article(Status, PublishedAt DESC) WHERE IsDeleted = 0;
+GO
+
+-- ----------------------------------------------------------------------------
+-- 4B. Tbl_ArticlePhoto (Multiple Photos / Gallery per Article)
+-- ----------------------------------------------------------------------------
+CREATE TABLE dbo.Tbl_ArticlePhoto (
+    ArticlePhotoId    VARCHAR(26) NOT NULL PRIMARY KEY,
+    ArticleId         VARCHAR(26) NOT NULL CONSTRAINT FK_ArticlePhoto_Article REFERENCES dbo.Tbl_Article(ArticleId),
+    PhotoUrl          NVARCHAR(300) NOT NULL,
+    Caption           NVARCHAR(200) NULL,
+    Credit            NVARCHAR(100) NULL,
+    SortOrder         INT NOT NULL CONSTRAINT DF_ArticlePhoto_SortOrder DEFAULT 0,
+    CreatedAt         DATETIMEOFFSET NOT NULL CONSTRAINT DF_ArticlePhoto_CreatedAt DEFAULT SYSDATETIMEOFFSET(),
+    UpdatedAt         DATETIMEOFFSET NULL,
+    IsDeleted         BIT NOT NULL CONSTRAINT DF_ArticlePhoto_IsDeleted DEFAULT 0,
+    DeletedAt         DATETIMEOFFSET NULL,
+    DeletedByAdminId  VARCHAR(26) NULL CONSTRAINT FK_ArticlePhoto_DeletedByAdmin REFERENCES dbo.Tbl_Admin(AdminId)
+);
+GO
+
+CREATE NONCLUSTERED INDEX IX_Tbl_ArticlePhoto_ArticleId ON dbo.Tbl_ArticlePhoto(ArticleId, SortOrder ASC) WHERE IsDeleted = 0;
+CREATE NONCLUSTERED INDEX IX_Tbl_ArticlePhoto_Cleanup   ON dbo.Tbl_ArticlePhoto(IsDeleted, DeletedAt)     WHERE IsDeleted = 1;
 GO
 
 -- ----------------------------------------------------------------------------
@@ -587,6 +610,28 @@ BEGIN
 END;
 GO
 
+-- Procedure: fn_get_article_photos_by_article_id
+CREATE OR ALTER PROCEDURE dbo.fn_get_article_photos_by_article_id
+    @p_article_id VARCHAR(26)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        ap.ArticlePhotoId,
+        ap.ArticleId,
+        ap.PhotoUrl,
+        ap.Caption,
+        ap.Credit,
+        ap.SortOrder,
+        ap.CreatedAt
+    FROM dbo.Tbl_ArticlePhoto ap
+    WHERE ap.ArticleId = @p_article_id
+      AND ap.IsDeleted = 0
+    ORDER BY ap.SortOrder ASC, ap.CreatedAt ASC;
+END;
+GO
+
 -- ----------------------------------------------------------------------------
 -- 4. REQUEST ARTICLES (PITCHES)
 -- ----------------------------------------------------------------------------
@@ -796,6 +841,34 @@ BEGIN
         '01JCAT00000000000000000003',
         N'Pending',
         SYSDATETIMEOFFSET(),
+        SYSDATETIMEOFFSET()
+    );
+END;
+GO
+
+-- Seed 7: Default Article Gallery Photos (Tbl_ArticlePhoto)
+IF NOT EXISTS (SELECT 1 FROM dbo.Tbl_ArticlePhoto WHERE ArticlePhotoId = '01JAPHT0000000000000000001')
+BEGIN
+    INSERT INTO dbo.Tbl_ArticlePhoto (
+        ArticlePhotoId, ArticleId, PhotoUrl, Caption, Credit, SortOrder, CreatedAt
+    )
+    VALUES
+    (
+        '01JAPHT0000000000000000001',
+        '01JART00000000000000000001',
+        N'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61',
+        N'Handcrafted stoneware vessels in afternoon shadow.',
+        N'Photo by L''ÉDITION Studio',
+        1,
+        SYSDATETIMEOFFSET()
+    ),
+    (
+        '01JAPHT0000000000000000002',
+        '01JART00000000000000000001',
+        N'https://images.unsplash.com/photo-1513694203232-719a280e022f',
+        N'Minimalist limestone courtyard in Kyoto.',
+        N'Photo by Kenji Sato',
+        2,
         SYSDATETIMEOFFSET()
     );
 END;

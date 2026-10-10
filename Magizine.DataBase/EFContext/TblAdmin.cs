@@ -39,6 +39,8 @@ public partial class TblAdmin
 
     public virtual ICollection<TblArticleCategory> TblArticleCategories { get; set; } = new List<TblArticleCategory>();
 
+    public virtual ICollection<TblArticlePhoto> TblArticlePhotos { get; set; } = new List<TblArticlePhoto>();
+
     public virtual ICollection<TblArticle> TblArticles { get; set; } = new List<TblArticle>();
 
     public virtual ICollection<TblAuthor> TblAuthors { get; set; } = new List<TblAuthor>();

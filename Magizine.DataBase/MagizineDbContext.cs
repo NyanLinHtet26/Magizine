@@ -27,6 +27,7 @@ public class MagizineDbContext : AppDbContext
         modelBuilder.Entity<TblAuthor>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<TblArticleCategory>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<TblArticle>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<TblArticlePhoto>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<TblRequestArticle>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<TblContactMessage>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<TblNewsletter>().HasQueryFilter(e => !e.IsDeleted);

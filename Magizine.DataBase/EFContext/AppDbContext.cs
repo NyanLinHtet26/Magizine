@@ -21,6 +21,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<TblArticleCategory> TblArticleCategories { get; set; }
 
+    public virtual DbSet<TblArticlePhoto> TblArticlePhotos { get; set; }
+
     public virtual DbSet<TblAuthor> TblAuthors { get; set; }
 
     public virtual DbSet<TblContactMessage> TblContactMessages { get; set; }
@@ -35,7 +37,7 @@ public partial class AppDbContext : DbContext
     {
         modelBuilder.Entity<TblAboutAndAppDatum>(entity =>
         {
-            entity.HasKey(e => e.AppDataId).HasName("PK__Tbl_Abou__4E459D2FCB959190");
+            entity.HasKey(e => e.AppDataId).HasName("PK__Tbl_Abou__4E459D2F59E60C47");
 
             entity.ToTable("Tbl_AboutAndAppData");
 
@@ -58,7 +60,7 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<TblAd>(entity =>
         {
-            entity.HasKey(e => e.AdId).HasName("PK__Tbl_Ads__7130D5AE18BAFB52");
+            entity.HasKey(e => e.AdId).HasName("PK__Tbl_Ads__7130D5AE385A3704");
 
             entity.ToTable("Tbl_Ads");
 
@@ -93,7 +95,7 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<TblAdmin>(entity =>
         {
-            entity.HasKey(e => e.AdminId).HasName("PK__Tbl_Admi__719FE48867BFBB65");
+            entity.HasKey(e => e.AdminId).HasName("PK__Tbl_Admi__719FE488E4A03835");
 
             entity.ToTable("Tbl_Admin");
 
@@ -127,7 +129,7 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<TblArticle>(entity =>
         {
-            entity.HasKey(e => e.ArticleId).HasName("PK__Tbl_Arti__9C6270E8F7BBEF77");
+            entity.HasKey(e => e.ArticleId).HasName("PK__Tbl_Arti__9C6270E88FEBE18A");
 
             entity.ToTable("Tbl_Article");
 
@@ -183,7 +185,7 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<TblArticleCategory>(entity =>
         {
-            entity.HasKey(e => e.ArticleCategoryId).HasName("PK__Tbl_Arti__E0B609434DD5E3B8");
+            entity.HasKey(e => e.ArticleCategoryId).HasName("PK__Tbl_Arti__E0B60943276CC4BB");
 
             entity.ToTable("Tbl_ArticleCategory");
 
@@ -211,9 +213,43 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_ArticleCat_DeletedByAdmin");
         });
 
+        modelBuilder.Entity<TblArticlePhoto>(entity =>
+        {
+            entity.HasKey(e => e.ArticlePhotoId).HasName("PK__Tbl_Arti__8083531A3B18E2AE");
+
+            entity.ToTable("Tbl_ArticlePhoto");
+
+            entity.HasIndex(e => new { e.ArticleId, e.SortOrder }, "IX_Tbl_ArticlePhoto_ArticleId").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => new { e.IsDeleted, e.DeletedAt }, "IX_Tbl_ArticlePhoto_Cleanup").HasFilter("([IsDeleted]=(1))");
+
+            entity.Property(e => e.ArticlePhotoId)
+                .HasMaxLength(26)
+                .IsUnicode(false);
+            entity.Property(e => e.ArticleId)
+                .HasMaxLength(26)
+                .IsUnicode(false);
+            entity.Property(e => e.Caption).HasMaxLength(200);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetimeoffset())", "DF_ArticlePhoto_CreatedAt");
+            entity.Property(e => e.Credit).HasMaxLength(100);
+            entity.Property(e => e.DeletedByAdminId)
+                .HasMaxLength(26)
+                .IsUnicode(false);
+            entity.Property(e => e.PhotoUrl).HasMaxLength(300);
+
+            entity.HasOne(d => d.Article).WithMany(p => p.TblArticlePhotos)
+                .HasForeignKey(d => d.ArticleId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ArticlePhoto_Article");
+
+            entity.HasOne(d => d.DeletedByAdmin).WithMany(p => p.TblArticlePhotos)
+                .HasForeignKey(d => d.DeletedByAdminId)
+                .HasConstraintName("FK_ArticlePhoto_DeletedByAdmin");
+        });
+
         modelBuilder.Entity<TblAuthor>(entity =>
         {
-            entity.HasKey(e => e.AuthorId).HasName("PK__Tbl_Auth__70DAFC343B306E6B");
+            entity.HasKey(e => e.AuthorId).HasName("PK__Tbl_Auth__70DAFC3483C475FF");
 
             entity.ToTable("Tbl_Author");
 
@@ -252,7 +288,7 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<TblContactMessage>(entity =>
         {
-            entity.HasKey(e => e.ContactMessageId).HasName("PK__Tbl_Cont__2B0D4DFC4B82A550");
+            entity.HasKey(e => e.ContactMessageId).HasName("PK__Tbl_Cont__2B0D4DFCB5B7CDC4");
 
             entity.ToTable("Tbl_ContactMessage");
 
@@ -283,7 +319,7 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<TblNewsletter>(entity =>
         {
-            entity.HasKey(e => e.NewsletterId).HasName("PK__Tbl_News__34A1DFFD8B1CE9AF");
+            entity.HasKey(e => e.NewsletterId).HasName("PK__Tbl_News__34A1DFFD309DCF88");
 
             entity.ToTable("Tbl_Newsletter");
 
@@ -310,7 +346,7 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<TblNotification>(entity =>
         {
-            entity.HasKey(e => e.NotificationId).HasName("PK__Tbl_Noti__20CF2E12A5323220");
+            entity.HasKey(e => e.NotificationId).HasName("PK__Tbl_Noti__20CF2E1239785717");
 
             entity.ToTable("Tbl_Notification");
 
@@ -354,7 +390,7 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<TblRequestArticle>(entity =>
         {
-            entity.HasKey(e => e.RequestArticleId).HasName("PK__Tbl_Requ__A90A9A15A36126F9");
+            entity.HasKey(e => e.RequestArticleId).HasName("PK__Tbl_Requ__A90A9A1555E00C6A");
 
             entity.ToTable("Tbl_RequestArticle");
 

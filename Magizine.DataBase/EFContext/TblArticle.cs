@@ -48,4 +48,6 @@ public partial class TblArticle
     public virtual TblAuthor Author { get; set; } = null!;
 
     public virtual TblAdmin? DeletedByAdmin { get; set; }
+
+    public virtual ICollection<TblArticlePhoto> TblArticlePhotos { get; set; } = new List<TblArticlePhoto>();
 }

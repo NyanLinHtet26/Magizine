@@ -12,17 +12,25 @@ namespace MagizineAuthor.Api.Features.Article;
 
 public sealed class ArticleService
 {
+    private const int MaxGalleryPhotosPerRequest = 10;
+
     private readonly MagizineDbContext _db;
     private readonly DapperService _dapperService;
+    private readonly IFileStorageService _fileStorage;
     private readonly ILogger<ArticleService> _logger;
 
     // TODO: Extract from HttpContext when Auth is fully active
     private string AuthorizedAuthorId => "01JAUTHOR00000000000000001"; // Temporarily hardcoded for Author testing
 
-    public ArticleService(MagizineDbContext db, DapperService dapperService, ILogger<ArticleService> logger)
+    public ArticleService(
+        MagizineDbContext db,
+        DapperService dapperService,
+        IFileStorageService fileStorage,
+        ILogger<ArticleService> logger)
     {
         _db = db;
         _dapperService = dapperService;
+        _fileStorage = fileStorage;
         _logger = logger;
     }
 
@@ -71,6 +79,10 @@ public sealed class ArticleService
                 return Result<ArticleResModel>.Error("Article not found or access denied.");
             }
 
+            article.Photos = await _dapperService.GetListAsync<ArticlePhotoResModel>(
+                "fn_get_article_photos_by_article_id",
+                new { p_article_id = article.ArticleId });
+
             return Result<ArticleResModel>.Success(article);
         }
         catch (Exception ex)
@@ -81,11 +93,30 @@ public sealed class ArticleService
 
     public async Task<Result<ArticleResModel>> CreateDraftAsync(CreateArticleReqModel req, CancellationToken ct = default)
     {
+        var newlySavedFiles = new List<string>();
         try
         {
             var isCategoryValid = await _db.TblArticleCategories.AnyAsync(c => c.ArticleCategoryId == req.ArticleCategoryId && !c.IsDeleted, ct);
             if (!isCategoryValid)
                 return Result<ArticleResModel>.Error("Selected Category does not exist.");
+
+            if (req.GalleryItems is { Count: > MaxGalleryPhotosPerRequest })
+            {
+                return Result<ArticleResModel>.Error($"Maximum {MaxGalleryPhotosPerRequest} gallery photos are allowed per request.");
+            }
+
+            var coverPhotoUrl = req.PhotoUrl;
+            if (req.CoverPhoto is not null)
+            {
+                var coverUpload = await _fileStorage.SavePhotoAsync(req.CoverPhoto, "articles", ct);
+                if (coverUpload.IsError)
+                {
+                    return Result<ArticleResModel>.Error(coverUpload.RespCode, coverUpload.RespDesp ?? "Invalid cover photo.");
+                }
+
+                coverPhotoUrl = coverUpload.Data!;
+                newlySavedFiles.Add(coverPhotoUrl);
+            }
 
             var slug = Slugify(req.Title);
             var isSlugTaken = await _db.TblArticles.AnyAsync(a => a.Slug == slug && !a.IsDeleted, ct);
@@ -94,14 +125,17 @@ public sealed class ArticleService
                 slug = $"{slug}-{Guid.NewGuid().ToString().Substring(0, 5)}";
             }
 
+            var articleId = Ulid.NewUlid().ToString();
+            var now = DateTimeOffset.UtcNow;
+
             var article = new TblArticle
             {
-                ArticleId = Ulid.NewUlid().ToString(),
+                ArticleId = articleId,
                 Title = req.Title.Trim(),
                 SubTitle = req.SubTitle?.Trim(),
                 Slug = slug,
                 Body = req.Body,
-                PhotoUrl = req.PhotoUrl,
+                PhotoUrl = coverPhotoUrl,
                 PhotoCaption = req.PhotoCaption,
                 PhotoCredit = req.PhotoCredit,
                 ArticleCategoryId = req.ArticleCategoryId,
@@ -114,26 +148,67 @@ public sealed class ArticleService
                 IsFeatured = false,
                 IsSpotlight = false,
                 
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = now
             };
 
+            var photoEntities = new List<TblArticlePhoto>();
+            if (req.GalleryItems is { Count: > 0 })
+            {
+                for (var i = 0; i < req.GalleryItems.Count; i++)
+                {
+                    var item = req.GalleryItems[i];
+                    var photoUpload = await _fileStorage.SavePhotoAsync(item.File, "articles", ct);
+                    if (photoUpload.IsError)
+                    {
+                        await _fileStorage.DeletePhotosAsync(newlySavedFiles, CancellationToken.None);
+                        return Result<ArticleResModel>.Error(photoUpload.RespCode, $"Gallery photo #{i + 1}: {photoUpload.RespDesp}");
+                    }
+
+                    newlySavedFiles.Add(photoUpload.Data!);
+                    photoEntities.Add(new TblArticlePhoto
+                    {
+                        ArticlePhotoId = Ulid.NewUlid().ToString(),
+                        ArticleId = articleId,
+                        PhotoUrl = photoUpload.Data!,
+                        Caption = item.Caption?.Trim(),
+                        Credit = item.Credit?.Trim(),
+                        SortOrder = item.SortOrder > 0 ? item.SortOrder : i + 1,
+                        CreatedAt = now
+                    });
+                }
+            }
+
             _db.TblArticles.Add(article);
+            if (photoEntities.Count > 0)
+            {
+                _db.TblArticlePhotos.AddRange(photoEntities);
+            }
+
             await _db.SaveChangesAsync(ct);
 
             return await GetMyArticleByIdAsync(new ArticleDetailReqModel { ArticleId = article.ArticleId }, ct);
         }
         catch (DbUpdateException ex) when (IsUniqueViolation(ex))
         {
+            if (newlySavedFiles.Count > 0)
+            {
+                await _fileStorage.DeletePhotosAsync(newlySavedFiles, CancellationToken.None);
+            }
             return Result<ArticleResModel>.Error("An article with this slug already exists.");
         }
         catch (Exception ex)
         {
+            if (newlySavedFiles.Count > 0)
+            {
+                await _fileStorage.DeletePhotosAsync(newlySavedFiles, CancellationToken.None);
+            }
             return Result<ArticleResModel>.Error(ex, "ME#999", e => _logger.LogError(e, "Error creating draft"));
         }
     }
 
     public async Task<Result<ArticleResModel>> UpdateDraftAsync(UpdateArticleReqModel req, CancellationToken ct = default)
     {
+        var newlySavedFiles = new List<string>();
         try
         {
             var article = await _db.TblArticles
@@ -150,14 +225,76 @@ public sealed class ArticleService
                 if (!isCategoryValid) return Result<ArticleResModel>.Error("Selected Category does not exist.");
             }
 
+            if (req.NewGalleryItems is { Count: > MaxGalleryPhotosPerRequest })
+            {
+                return Result<ArticleResModel>.Error($"Maximum {MaxGalleryPhotosPerRequest} gallery photos are allowed per request.");
+            }
+
+            var now = DateTimeOffset.UtcNow;
+
+            if (req.CoverPhoto is not null)
+            {
+                var coverUpload = await _fileStorage.SavePhotoAsync(req.CoverPhoto, "articles", ct);
+                if (coverUpload.IsError)
+                {
+                    return Result<ArticleResModel>.Error(coverUpload.RespCode, coverUpload.RespDesp ?? "Invalid cover photo.");
+                }
+
+                newlySavedFiles.Add(coverUpload.Data!);
+                article.PhotoUrl = coverUpload.Data!;
+            }
+            else if (!string.IsNullOrWhiteSpace(req.PhotoUrl))
+            {
+                article.PhotoUrl = req.PhotoUrl;
+            }
+
+            if (req.RemoveArticlePhotoIds is { Count: > 0 })
+            {
+                var photosToRemove = await _db.TblArticlePhotos
+                    .Where(p => p.ArticleId == article.ArticleId && req.RemoveArticlePhotoIds.Contains(p.ArticlePhotoId) && !p.IsDeleted)
+                    .ToListAsync(ct);
+
+                foreach (var photo in photosToRemove)
+                {
+                    photo.IsDeleted = true;
+                    photo.DeletedAt = now;
+                    photo.UpdatedAt = now;
+                }
+            }
+
+            if (req.NewGalleryItems is { Count: > 0 })
+            {
+                for (var i = 0; i < req.NewGalleryItems.Count; i++)
+                {
+                    var item = req.NewGalleryItems[i];
+                    var photoUpload = await _fileStorage.SavePhotoAsync(item.File, "articles", ct);
+                    if (photoUpload.IsError)
+                    {
+                        await _fileStorage.DeletePhotosAsync(newlySavedFiles, CancellationToken.None);
+                        return Result<ArticleResModel>.Error(photoUpload.RespCode, $"New gallery photo #{i + 1}: {photoUpload.RespDesp}");
+                    }
+
+                    newlySavedFiles.Add(photoUpload.Data!);
+                    _db.TblArticlePhotos.Add(new TblArticlePhoto
+                    {
+                        ArticlePhotoId = Ulid.NewUlid().ToString(),
+                        ArticleId = article.ArticleId,
+                        PhotoUrl = photoUpload.Data!,
+                        Caption = item.Caption?.Trim(),
+                        Credit = item.Credit?.Trim(),
+                        SortOrder = item.SortOrder > 0 ? item.SortOrder : i + 1,
+                        CreatedAt = now
+                    });
+                }
+            }
+
             article.Title = req.Title.Trim();
             article.SubTitle = req.SubTitle?.Trim();
             article.Body = req.Body;
-            article.PhotoUrl = req.PhotoUrl;
             article.PhotoCaption = req.PhotoCaption;
             article.PhotoCredit = req.PhotoCredit;
             article.ArticleCategoryId = req.ArticleCategoryId;
-            article.UpdatedAt = DateTime.UtcNow;
+            article.UpdatedAt = now;
 
             await _db.SaveChangesAsync(ct);
 
@@ -165,6 +302,10 @@ public sealed class ArticleService
         }
         catch (Exception ex)
         {
+            if (newlySavedFiles.Count > 0)
+            {
+                await _fileStorage.DeletePhotosAsync(newlySavedFiles, CancellationToken.None);
+            }
             return Result<ArticleResModel>.Error(ex, "ME#999", e => _logger.LogError(e, "Error updating draft"));
         }
     }
@@ -188,7 +329,7 @@ public sealed class ArticleService
 
             // Change status to Pending so Admin can see it
             article.Status = "Pending";
-            article.UpdatedAt = DateTime.UtcNow;
+            article.UpdatedAt = DateTimeOffset.UtcNow;
 
             await _db.SaveChangesAsync(ct);
             return Result<string>.Success("Article successfully submitted for review.");

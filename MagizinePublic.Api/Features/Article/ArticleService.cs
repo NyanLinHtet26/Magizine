@@ -68,6 +68,10 @@ public sealed class ArticleService
                 return Result<ArticleResModel>.Error("Article not found.");
             }
 
+            article.Photos = await _dapperService.GetListAsync<ArticlePhotoResModel>(
+                "fn_get_article_photos_by_article_id",
+                new { p_article_id = article.ArticleId });
+
             return Result<ArticleResModel>.Success(article);
         }
         catch (Exception ex)

@@ -42,6 +42,8 @@ app.UseExceptionHandler(_ => { });
 
 app.UseHttpsRedirection();
 
+app.UseMagizineStaticFiles();
+
 // CORS runs after UseRouting (inserted automatically by WebApplication once endpoints are mapped)
 // and before authorization, so a preflight is answered by the CORS middleware instead of falling
 // through to a controller that rejects OPTIONS with 405. With an empty Cors:AllowedOrigins list

@@ -186,10 +186,10 @@ GO
 
 -- 3.1 RequestArticle Paginated List (Supports Author scoping & Admin Draft exclusion)
 CREATE OR ALTER PROCEDURE dbo.fn_get_request_article_list
-    @p_search_keyword NVARCHAR(250) = NULL,
-    @p_status         NVARCHAR(20)  = NULL,
+    @p_search_keyword NVARCHAR(200) = NULL,
     @p_category_id    VARCHAR(26)   = NULL,
     @p_author_id      VARCHAR(26)   = NULL,
+    @p_status         NVARCHAR(20)  = NULL,
     @p_exclude_draft  BIT           = 0,
     @p_page           INT           = 1,
     @p_page_size      INT           = 20
@@ -197,65 +197,19 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    WITH Filtered AS (
-        SELECT
-            COUNT(1) OVER() AS TotalCount,
-            r.RequestArticleId,
-            r.Title,
-            r.SubTitle,
-            r.Slug,
-            r.Body,
-            r.PhotoUrl,
-            r.PhotoCaption,
-            r.PhotoCredit,
-            r.ArticleCategoryId,
-            c.[Name] AS CategoryName,
-            r.AuthorId,
-            LTRIM(RTRIM(r.AuthorName)) AS AuthorName,
-            r.[Status],
-            r.SubmittedAt,
-            r.ReviewedAt,
-            r.ReviewedByAdminId,
-            r.AdminNotes,
-            r.PublishedArticleId,
-            r.CreatedAt,
-            r.UpdatedAt
-        FROM (
-            SELECT
-                ra.*,
-                ISNULL(au.FirstName, N'') + N' ' + ISNULL(au.LastName, N'') AS AuthorName
-            FROM dbo.Tbl_RequestArticle ra
-            LEFT JOIN dbo.Tbl_Author au ON ra.AuthorId = au.AuthorId
-        ) r
-        LEFT JOIN dbo.Tbl_ArticleCategory c ON r.ArticleCategoryId = c.ArticleCategoryId
-        WHERE r.IsDeleted = 0
-          AND (@p_author_id IS NULL OR @p_author_id = '' OR r.AuthorId = @p_author_id)
-          AND (@p_category_id IS NULL OR @p_category_id = '' OR r.ArticleCategoryId = @p_category_id)
-          AND (@p_exclude_draft = 0 OR r.[Status] <> N'Draft')
-          AND (@p_status IS NULL OR @p_status = '' OR r.[Status] = @p_status)
-          AND (
-              @p_search_keyword IS NULL OR @p_search_keyword = N''
-              OR r.Title LIKE N'%' + @p_search_keyword + N'%'
-              OR r.SubTitle LIKE N'%' + @p_search_keyword + N'%'
-              OR r.AuthorName LIKE N'%' + @p_search_keyword + N'%'
-          )
-    )
-    SELECT *
-    FROM Filtered
-    ORDER BY COALESCE(SubmittedAt, CreatedAt) DESC
-    OFFSET (@p_page - 1) * @p_page_size ROWS
-    FETCH NEXT @p_page_size ROWS ONLY;
-END;
-GO
+    DECLARE @v_total BIGINT;
 
--- 3.2 RequestArticle Detail By ID
-CREATE OR ALTER PROCEDURE dbo.fn_get_request_article_by_id
-    @p_request_id VARCHAR(26)
-AS
-BEGIN
-    SET NOCOUNT ON;
+    SELECT @v_total = COUNT(1)
+    FROM dbo.Tbl_RequestArticle r
+    WHERE r.IsDeleted = 0
+      AND (@p_exclude_draft = 0 OR r.[Status] <> N'Draft')
+      AND (@p_search_keyword IS NULL OR r.Title LIKE N'%' + @p_search_keyword + N'%' OR r.SubTitle LIKE N'%' + @p_search_keyword + N'%')
+      AND (@p_category_id IS NULL OR @p_category_id = '' OR r.ArticleCategoryId = @p_category_id)
+      AND (@p_author_id IS NULL OR @p_author_id = '' OR r.AuthorId = @p_author_id)
+      AND (@p_status IS NULL OR @p_status = N'' OR r.[Status] = @p_status);
 
-    SELECT
+    SELECT 
+        @v_total AS TotalCount,
         r.RequestArticleId,
         r.Title,
         r.SubTitle,
@@ -267,7 +221,7 @@ BEGIN
         r.ArticleCategoryId,
         c.[Name] AS CategoryName,
         r.AuthorId,
-        LTRIM(RTRIM(ISNULL(au.FirstName, N'') + N' ' + ISNULL(au.LastName, N''))) AS AuthorName,
+        CONCAT(a.FirstName, N' ', a.LastName) AS AuthorName,
         r.[Status],
         r.SubmittedAt,
         r.ReviewedAt,
@@ -277,10 +231,57 @@ BEGIN
         r.CreatedAt,
         r.UpdatedAt
     FROM dbo.Tbl_RequestArticle r
-    LEFT JOIN dbo.Tbl_ArticleCategory c ON r.ArticleCategoryId = c.ArticleCategoryId
-    LEFT JOIN dbo.Tbl_Author au ON r.AuthorId = au.AuthorId
+    INNER JOIN dbo.Tbl_ArticleCategory c ON r.ArticleCategoryId = c.ArticleCategoryId
+    INNER JOIN dbo.Tbl_Author a ON r.AuthorId = a.AuthorId
+    WHERE r.IsDeleted = 0
+      AND (@p_exclude_draft = 0 OR r.[Status] <> N'Draft')
+      AND (@p_search_keyword IS NULL OR r.Title LIKE N'%' + @p_search_keyword + N'%' OR r.SubTitle LIKE N'%' + @p_search_keyword + N'%')
+      AND (@p_category_id IS NULL OR @p_category_id = '' OR r.ArticleCategoryId = @p_category_id)
+      AND (@p_author_id IS NULL OR @p_author_id = '' OR r.AuthorId = @p_author_id)
+      AND (@p_status IS NULL OR @p_status = N'' OR r.[Status] = @p_status)
+    ORDER BY COALESCE(r.SubmittedAt, r.CreatedAt) DESC
+    OFFSET (@p_page - 1) * @p_page_size ROWS
+    FETCH NEXT @p_page_size ROWS ONLY;
+END;
+GO
+
+-- 3.2 RequestArticle Detail By ID
+CREATE OR ALTER PROCEDURE dbo.fn_get_request_article_by_id
+    @p_request_id    VARCHAR(26),
+    @p_author_id     VARCHAR(26) = NULL,
+    @p_exclude_draft BIT         = 0
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        r.RequestArticleId,
+        r.Title,
+        r.SubTitle,
+        r.Slug,
+        r.Body,
+        r.PhotoUrl,
+        r.PhotoCaption,
+        r.PhotoCredit,
+        r.ArticleCategoryId,
+        c.[Name] AS CategoryName,
+        r.AuthorId,
+        CONCAT(a.FirstName, N' ', a.LastName) AS AuthorName,
+        r.[Status],
+        r.SubmittedAt,
+        r.ReviewedAt,
+        r.ReviewedByAdminId,
+        r.AdminNotes,
+        r.PublishedArticleId,
+        r.CreatedAt,
+        r.UpdatedAt
+    FROM dbo.Tbl_RequestArticle r
+    INNER JOIN dbo.Tbl_ArticleCategory c ON r.ArticleCategoryId = c.ArticleCategoryId
+    INNER JOIN dbo.Tbl_Author a ON r.AuthorId = a.AuthorId
     WHERE r.RequestArticleId = @p_request_id
-      AND r.IsDeleted = 0;
+      AND r.IsDeleted = 0
+      AND (@p_exclude_draft = 0 OR r.[Status] <> N'Draft')
+      AND (@p_author_id IS NULL OR @p_author_id = '' OR r.AuthorId = @p_author_id);
 END;
 GO
 
@@ -309,7 +310,7 @@ GO
 
 -- 3.4 Article Photos By Staged RequestArticleId
 CREATE OR ALTER PROCEDURE dbo.fn_get_article_photos_by_request_id
-    @p_request_article_id VARCHAR(26)
+    @p_request_id VARCHAR(26)
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -324,7 +325,7 @@ BEGIN
         ap.SortOrder,
         ap.CreatedAt
     FROM dbo.Tbl_ArticlePhoto ap
-    WHERE ap.RequestArticleId = @p_request_article_id
+    WHERE ap.RequestArticleId = @p_request_id
       AND ap.IsDeleted = 0
     ORDER BY ap.SortOrder ASC, ap.CreatedAt ASC;
 END;

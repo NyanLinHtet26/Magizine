@@ -1,10 +1,53 @@
 @MagizineAdmin.Api_HostAddress = http://localhost:5024
 
-# The only route that currently responds: the OpenAPI document.
-# It doubles as a liveness check - a 200 here means the app booted and, if the
-# model builds, that the database wiring resolves. Add endpoint requests below
-# as controllers are implemented.
+### 1. OpenAPI v1 Document
 GET {{MagizineAdmin.Api_HostAddress}}/openapi/v1.json
 Accept: application/json
 
-###
+### 2. List Submitted Request Articles (Excludes Author Drafts)
+POST {{MagizineAdmin.Api_HostAddress}}/api/admin/requestarticle/List
+Content-Type: application/json
+
+{
+  "Page": 1,
+  "PageSize": 20,
+  "SearchKeyword": null,
+  "ArticleCategoryId": null,
+  "AuthorId": null,
+  "Status": null
+}
+
+### 3. Get Request Article Detail (With Staged Gallery Photos)
+POST {{MagizineAdmin.Api_HostAddress}}/api/admin/requestarticle/Detail
+Content-Type: application/json
+
+{
+  "RequestArticleId": "01JREQ00000000000000000001"
+}
+
+### 4. Review Request Article (Approve -> Auto-Publishes to Tbl_Article)
+POST {{MagizineAdmin.Api_HostAddress}}/api/admin/requestarticle/Review
+Content-Type: application/json
+
+{
+  "RequestArticleId": "01JREQ00000000000000000001",
+  "Status": "Approved",
+  "AdminNotes": "Approved for publication.",
+  "IsFeatured": true,
+  "IsSpotlight": false
+}
+
+### 5. List Published Articles (Tbl_Article)
+POST {{MagizineAdmin.Api_HostAddress}}/api/admin/article/List
+Content-Type: application/json
+
+{
+  "Page": 1,
+  "PageSize": 20,
+  "SearchKeyword": null,
+  "ArticleCategoryId": null,
+  "AuthorId": null,
+  "Status": "Published",
+  "IsFeatured": null,
+  "IsSpotlight": null
+}

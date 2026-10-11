@@ -91,8 +91,8 @@ Each Article (both staged in `Tbl_RequestArticle` and published in `Tbl_Article`
 
 | FormData Key | Type | Required? | Description |
 | :--- | :--- | :---: | :--- |
-| `Title` | `string` | ✅ Yes | Article headline (max 250 chars) |
-| `SubTitle` | `string` | No | Article subtitle (max 500 chars) |
+| `Title` | `string` | ✅ Yes | Article headline (max 200 chars) |
+| `SubTitle` | `string` | No | Article subtitle (max 400 chars) |
 | `Body` | `string` | No | HTML or Markdown body content |
 | `ArticleCategoryId` | `string` | ✅ Yes | 26-character ULID of the category |
 | `Status` | `string` | No | `"Draft"` (default) or `"Submitted"` (also accepts `"Submit"`) |

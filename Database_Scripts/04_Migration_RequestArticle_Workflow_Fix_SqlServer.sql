@@ -36,10 +36,11 @@ IF OBJECT_ID('dbo.Tbl_RequestArticle', 'U') IS NOT NULL
    AND (COL_LENGTH('dbo.Tbl_RequestArticle', 'PitcherName') IS NOT NULL
         OR COL_LENGTH('dbo.Tbl_RequestArticle', 'AuthorId') IS NULL)
 BEGIN
+    IF EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_ArticlePhoto_RequestArticle')
+        ALTER TABLE dbo.Tbl_ArticlePhoto DROP CONSTRAINT FK_ArticlePhoto_RequestArticle;
+
     IF EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Tbl_ArticlePhoto_RequestArticle')
-    BEGIN
         ALTER TABLE dbo.Tbl_ArticlePhoto DROP CONSTRAINT FK_Tbl_ArticlePhoto_RequestArticle;
-    END;
 
     DROP TABLE dbo.Tbl_RequestArticle;
 END;
@@ -48,50 +49,43 @@ GO
 IF OBJECT_ID('dbo.Tbl_RequestArticle', 'U') IS NULL
 BEGIN
     CREATE TABLE dbo.Tbl_RequestArticle (
-        RequestArticleId    VARCHAR(26)        NOT NULL,
-        Title               NVARCHAR(250)      NOT NULL,
-        SubTitle            NVARCHAR(500)      NULL,
-        Slug                NVARCHAR(250)      NOT NULL,
-        Body                NVARCHAR(MAX)      NOT NULL,
-        PhotoUrl            NVARCHAR(300)      NULL,
-        PhotoCaption        NVARCHAR(200)      NULL,
-        PhotoCredit         NVARCHAR(100)      NULL,
-        ArticleCategoryId   VARCHAR(26)        NOT NULL,
-        AuthorId            VARCHAR(26)        NOT NULL,
-        [Status]            NVARCHAR(20)       NOT NULL CONSTRAINT DF_Tbl_RequestArticle_Status DEFAULT N'Draft', -- 'Draft' | 'Submitted' | 'Approved' | 'Rejected'
-        SubmittedAt         DATETIMEOFFSET(7)  NULL,
-        ReviewedAt          DATETIMEOFFSET(7)  NULL,
-        ReviewedByAdminId   VARCHAR(26)        NULL,
-        AdminNotes          NVARCHAR(1000)     NULL,
-        PublishedArticleId  VARCHAR(26)        NULL,
-        CreatedAt           DATETIMEOFFSET(7)  NOT NULL CONSTRAINT DF_Tbl_RequestArticle_CreatedAt DEFAULT SYSDATETIMEOFFSET(),
-        UpdatedAt           DATETIMEOFFSET(7)  NULL,
-        IsDeleted           BIT                NOT NULL CONSTRAINT DF_Tbl_RequestArticle_IsDeleted DEFAULT 0,
-        DeletedAt           DATETIMEOFFSET(7)  NULL,
-        DeletedByAdminId    VARCHAR(26)        NULL,
-
-        CONSTRAINT PK_Tbl_RequestArticle PRIMARY KEY CLUSTERED (RequestArticleId ASC),
-        CONSTRAINT FK_Tbl_RequestArticle_Category FOREIGN KEY (ArticleCategoryId) REFERENCES dbo.Tbl_ArticleCategory (ArticleCategoryId),
-        CONSTRAINT FK_Tbl_RequestArticle_Author FOREIGN KEY (AuthorId) REFERENCES dbo.Tbl_Author (AuthorId),
-        CONSTRAINT FK_Tbl_RequestArticle_ReviewedByAdmin FOREIGN KEY (ReviewedByAdminId) REFERENCES dbo.Tbl_Admin (AdminId),
-        CONSTRAINT FK_Tbl_RequestArticle_PublishedArticle FOREIGN KEY (PublishedArticleId) REFERENCES dbo.Tbl_Article (ArticleId),
-        CONSTRAINT FK_Tbl_RequestArticle_DeletedByAdmin FOREIGN KEY (DeletedByAdminId) REFERENCES dbo.Tbl_Admin (AdminId)
+        RequestArticleId   VARCHAR(26) NOT NULL PRIMARY KEY,
+        Title              NVARCHAR(200) NOT NULL,
+        SubTitle           NVARCHAR(400) NULL,
+        Slug               NVARCHAR(200) NOT NULL,
+        Body               NVARCHAR(MAX) NULL,
+        PhotoUrl           NVARCHAR(300) NULL,
+        PhotoCaption       NVARCHAR(200) NULL,
+        PhotoCredit        NVARCHAR(100) NULL,
+        ArticleCategoryId  VARCHAR(26) NOT NULL CONSTRAINT FK_RequestArticle_Category REFERENCES dbo.Tbl_ArticleCategory(ArticleCategoryId),
+        AuthorId           VARCHAR(26) NOT NULL CONSTRAINT FK_RequestArticle_Author REFERENCES dbo.Tbl_Author(AuthorId),
+        Status             NVARCHAR(20) NOT NULL CONSTRAINT DF_RequestArticle_Status DEFAULT N'Draft',
+        SubmittedAt        DATETIMEOFFSET NULL,
+        ReviewedAt         DATETIMEOFFSET NULL,
+        ReviewedByAdminId  VARCHAR(26) NULL CONSTRAINT FK_RequestArticle_ReviewedByAdmin REFERENCES dbo.Tbl_Admin(AdminId),
+        AdminNotes         NVARCHAR(500) NULL,
+        PublishedArticleId VARCHAR(26) NULL CONSTRAINT FK_RequestArticle_Article REFERENCES dbo.Tbl_Article(ArticleId),
+        CreatedAt          DATETIMEOFFSET NOT NULL CONSTRAINT DF_RequestArticle_CreatedAt DEFAULT SYSDATETIMEOFFSET(),
+        UpdatedAt          DATETIMEOFFSET NULL,
+        IsDeleted          BIT NOT NULL CONSTRAINT DF_RequestArticle_IsDeleted DEFAULT 0,
+        DeletedAt          DATETIMEOFFSET NULL,
+        DeletedByAdminId   VARCHAR(26) NULL CONSTRAINT FK_RequestArticle_DeletedByAdmin REFERENCES dbo.Tbl_Admin(AdminId)
     );
 END;
 GO
 
 -- Ensure all indexes on dbo.Tbl_RequestArticle exist
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Tbl_RequestArticle_AuthorId' AND object_id = OBJECT_ID('dbo.Tbl_RequestArticle'))
-    CREATE NONCLUSTERED INDEX IX_Tbl_RequestArticle_AuthorId ON dbo.Tbl_RequestArticle(AuthorId) WHERE IsDeleted = 0;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UX_Tbl_RequestArticle_Slug_NotDeleted' AND object_id = OBJECT_ID('dbo.Tbl_RequestArticle'))
+    CREATE UNIQUE NONCLUSTERED INDEX UX_Tbl_RequestArticle_Slug_NotDeleted ON dbo.Tbl_RequestArticle(Slug) WHERE IsDeleted = 0;
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Tbl_RequestArticle_CategoryId' AND object_id = OBJECT_ID('dbo.Tbl_RequestArticle'))
-    CREATE NONCLUSTERED INDEX IX_Tbl_RequestArticle_CategoryId ON dbo.Tbl_RequestArticle(ArticleCategoryId) WHERE IsDeleted = 0;
+    CREATE NONCLUSTERED INDEX IX_Tbl_RequestArticle_CategoryId ON dbo.Tbl_RequestArticle(ArticleCategoryId);
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Tbl_RequestArticle_AuthorId' AND object_id = OBJECT_ID('dbo.Tbl_RequestArticle'))
+    CREATE NONCLUSTERED INDEX IX_Tbl_RequestArticle_AuthorId ON dbo.Tbl_RequestArticle(AuthorId);
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Tbl_RequestArticle_Status' AND object_id = OBJECT_ID('dbo.Tbl_RequestArticle'))
-    CREATE NONCLUSTERED INDEX IX_Tbl_RequestArticle_Status ON dbo.Tbl_RequestArticle([Status], CreatedAt DESC) WHERE IsDeleted = 0;
-
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Tbl_RequestArticle_Cleanup' AND object_id = OBJECT_ID('dbo.Tbl_RequestArticle'))
-    CREATE NONCLUSTERED INDEX IX_Tbl_RequestArticle_Cleanup ON dbo.Tbl_RequestArticle(IsDeleted, DeletedAt) WHERE IsDeleted = 1;
+    CREATE NONCLUSTERED INDEX IX_Tbl_RequestArticle_Status ON dbo.Tbl_RequestArticle(Status) WHERE IsDeleted = 0;
 GO
 
 
@@ -102,23 +96,18 @@ GO
 IF OBJECT_ID('dbo.Tbl_ArticlePhoto', 'U') IS NULL
 BEGIN
     CREATE TABLE dbo.Tbl_ArticlePhoto (
-        ArticlePhotoId      VARCHAR(26)        NOT NULL,
-        ArticleId           VARCHAR(26)        NULL,
-        RequestArticleId    VARCHAR(26)        NULL,
-        PhotoUrl            NVARCHAR(300)      NOT NULL,
-        Caption             NVARCHAR(200)      NULL,
-        Credit              NVARCHAR(100)      NULL,
-        SortOrder           INT                NOT NULL CONSTRAINT DF_Tbl_ArticlePhoto_SortOrder DEFAULT 0,
-        CreatedAt           DATETIMEOFFSET(7)  NOT NULL CONSTRAINT DF_Tbl_ArticlePhoto_CreatedAt DEFAULT SYSDATETIMEOFFSET(),
-        UpdatedAt           DATETIMEOFFSET(7)  NULL,
-        IsDeleted           BIT                NOT NULL CONSTRAINT DF_Tbl_ArticlePhoto_IsDeleted DEFAULT 0,
-        DeletedAt           DATETIMEOFFSET(7)  NULL,
-        DeletedByAdminId    VARCHAR(26)        NULL,
-
-        CONSTRAINT PK_Tbl_ArticlePhoto PRIMARY KEY CLUSTERED (ArticlePhotoId ASC),
-        CONSTRAINT FK_Tbl_ArticlePhoto_Article FOREIGN KEY (ArticleId) REFERENCES dbo.Tbl_Article (ArticleId),
-        CONSTRAINT FK_Tbl_ArticlePhoto_RequestArticle FOREIGN KEY (RequestArticleId) REFERENCES dbo.Tbl_RequestArticle (RequestArticleId),
-        CONSTRAINT FK_Tbl_ArticlePhoto_DeletedByAdmin FOREIGN KEY (DeletedByAdminId) REFERENCES dbo.Tbl_Admin (AdminId)
+        ArticlePhotoId    VARCHAR(26) NOT NULL PRIMARY KEY,
+        ArticleId         VARCHAR(26) NULL CONSTRAINT FK_ArticlePhoto_Article REFERENCES dbo.Tbl_Article(ArticleId),
+        RequestArticleId  VARCHAR(26) NULL CONSTRAINT FK_ArticlePhoto_RequestArticle REFERENCES dbo.Tbl_RequestArticle(RequestArticleId),
+        PhotoUrl          NVARCHAR(300) NOT NULL,
+        Caption           NVARCHAR(200) NULL,
+        Credit            NVARCHAR(100) NULL,
+        SortOrder         INT NOT NULL CONSTRAINT DF_ArticlePhoto_SortOrder DEFAULT 0,
+        CreatedAt         DATETIMEOFFSET NOT NULL CONSTRAINT DF_ArticlePhoto_CreatedAt DEFAULT SYSDATETIMEOFFSET(),
+        UpdatedAt         DATETIMEOFFSET NULL,
+        IsDeleted         BIT NOT NULL CONSTRAINT DF_ArticlePhoto_IsDeleted DEFAULT 0,
+        DeletedAt         DATETIMEOFFSET NULL,
+        DeletedByAdminId  VARCHAR(26) NULL CONSTRAINT FK_ArticlePhoto_DeletedByAdmin REFERENCES dbo.Tbl_Admin(AdminId)
     );
 END
 ELSE
@@ -144,11 +133,11 @@ BEGIN
         ALTER TABLE dbo.Tbl_ArticlePhoto ADD RequestArticleId VARCHAR(26) NULL;
     END;
 
-    -- Add FK_Tbl_ArticlePhoto_RequestArticle constraint if missing
-    IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Tbl_ArticlePhoto_RequestArticle')
+    -- Add FK_ArticlePhoto_RequestArticle constraint if missing
+    IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name IN ('FK_ArticlePhoto_RequestArticle', 'FK_Tbl_ArticlePhoto_RequestArticle'))
     BEGIN
         ALTER TABLE dbo.Tbl_ArticlePhoto
-        ADD CONSTRAINT FK_Tbl_ArticlePhoto_RequestArticle
+        ADD CONSTRAINT FK_ArticlePhoto_RequestArticle
         FOREIGN KEY (RequestArticleId) REFERENCES dbo.Tbl_RequestArticle (RequestArticleId);
     END;
 END;

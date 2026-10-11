@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "8e4c1d92-5a7b-4f3e-9c2d-1b6e8a4f0c3a",
     "name": "L'ÉDITION Magazine Backend API (Full Collection)",
-    "description": "Complete Postman Collection for the **L'ÉDITION Magazine Platform Backend** (.NET 10.0 + SQL Server + Dapper + EF Core).\n\n### Included APIs & Default Base URLs\n1. **MagizineAdmin.Api**: `{{adminBaseUrl}}` (`http://localhost:5024` | HTTPS: `https://localhost:7036`)\n2. **MagizineAuthor.Api**: `{{authorBaseUrl}}` (`http://localhost:5267` | HTTPS: `https://localhost:7137`)\n3. **MagizinePublic.Api**: `{{publicBaseUrl}}` (`http://localhost:5080` | HTTPS: `https://localhost:7080`)\n\n### Features\n- **26-char ULID Identifiers** pre-populated from default SQL Server seed data (`MagizineDB`).\n- **Auto-Chaining Test Scripts**: Running `Create` endpoints automatically updates `{{categoryId}}`, `{{authorId}}`, `{{articleId}}`, `{{articleSlug}}`, and `{{authorArticleId}}` collection variables.\n- **Standard Result<T> Assertions**: Built-in Postman tests verify `HTTP 200`, `RespType: \"Success\"`, and `RespCode: \"MS#000\"`.",
+    "description": "Complete Postman Collection for the **L'ÉDITION Magazine Platform Backend** (.NET 10.0 + SQL Server + Dapper + EF Core).\n\n### Included APIs & Default Base URLs\n1. **MagizineAdmin.Api**: `{{adminBaseUrl}}` (`http://localhost:5024` | HTTPS: `https://localhost:7036`)\n2. **MagizineAuthor.Api**: `{{authorBaseUrl}}` (`http://localhost:5267` | HTTPS: `https://localhost:7137`)\n3. **MagizinePublic.Api**: `{{publicBaseUrl}}` (`http://localhost:5080` | HTTPS: `https://localhost:7080`)\n\n### Author-to-Admin Article Approval Workflow\n1. **Author Portal (`/api/author/article/*`)**: Authors create and edit articles in `dbo.Tbl_RequestArticle` (`Status = \"Draft\"` or `\"Submitted\"`) with cover & gallery photos (`dbo.Tbl_ArticlePhoto`). Editable and deletable while `Status != \"Approved\"`.\n2. **Admin Review Queue (`/api/admin/requestarticle/*`)**: Admin lists and previews `\"Submitted\"` requests (`\"Draft\"` items are private to Authors and excluded from Admin). When Admin approves (`Status = \"Approved\"`), the backend automatically inserts a `\"Published\"` article into `dbo.Tbl_Article`, links all gallery photos, and locks the Author's `Tbl_RequestArticle` row.\n3. **Public Reader API (`/api/public/article/*`)**: Serves live `\"Published\"` articles and their linked photo galleries.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -77,8 +77,18 @@
       "type": "string"
     },
     {
+      "key": "publishedArticleId",
+      "value": "01JART00000000000000000001",
+      "type": "string"
+    },
+    {
+      "key": "authorRequestArticleId",
+      "value": "01JREQ00000000000000000002",
+      "type": "string"
+    },
+    {
       "key": "authorArticleId",
-      "value": "01JART00000000000000000002",
+      "value": "01JREQ00000000000000000002",
       "type": "string"
     },
     {
@@ -90,7 +100,7 @@
   "item": [
     {
       "name": "1. MagizineAdmin.Api (Port 5024)",
-      "description": "Back-office editorial administration API (`MagizineAdmin.Api`).\n\nIncludes full CRUD and status workflows for:\n- Article Categories (`/api/admin/article-category`)\n- Authors (`/api/admin/author`)\n- Articles (`/api/admin/article`)\n- Request Articles / Pitches (`/api/admin/requestarticle`)",
+      "description": "Back-office editorial administration API (`MagizineAdmin.Api`).\n\nIncludes full CRUD and status workflows for:\n- Article Categories (`/api/admin/article-category`)\n- Authors (`/api/admin/author`)\n- Published Articles (`/api/admin/article`)\n- Author Article Submissions & Approval Queue (`/api/admin/requestarticle`)",
       "item": [
         {
           "name": "1.1 Article Category",
@@ -1198,11 +1208,11 @@
           ]
         },
         {
-          "name": "1.4 Request Article (Pitches)",
-          "description": "Review and manage reader/writer article pitches (`Tbl_RequestArticle`).",
+          "name": "1.4 Request Article (Author Submissions & Admin Review)",
+          "description": "Review and approve/reject Author-submitted articles (`dbo.Tbl_RequestArticle`).\n\n- Author `Draft` rows are strictly hidden from Admin (`@p_exclude_draft = 1`).\n- Approving a `Submitted` request automatically publishes it into `dbo.Tbl_Article` with `Status = \"Published\"` and links all staged gallery photos (`dbo.Tbl_ArticlePhoto`).",
           "item": [
             {
-              "name": "List Request Articles (Filtered & Paged)",
+              "name": "List Request Articles (Filtered & Paged - Excludes Drafts)",
               "event": [
                 {
                   "listen": "test",
@@ -1212,9 +1222,12 @@
                       "    pm.response.to.have.status(200);",
                       "});",
                       "const json = pm.response.json();",
-                      "pm.test('RespType is Success', function () {",
+                      "pm.test('RespType is Success & Drafts are excluded', function () {",
                       "    pm.expect(json.RespType).to.eql('Success');",
                       "    pm.expect(json.Data.Items).to.be.an('array');",
+                      "    json.Data.Items.forEach(item => {",
+                      "        pm.expect(item.Status).to.not.eql('Draft');",
+                      "    });",
                       "});",
                       "if (json.Data && json.Data.Items && json.Data.Items.length > 0) {",
                       "    pm.collectionVariables.set('requestArticleId', json.Data.Items[0].RequestArticleId);",
@@ -1234,7 +1247,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"Page\": 1,\n  \"PageSize\": 20,\n  \"Status\": null,\n  \"SearchKeyword\": null\n}",
+                  "raw": "{\n  \"Page\": 1,\n  \"PageSize\": 20,\n  \"SearchKeyword\": null,\n  \"ArticleCategoryId\": null,\n  \"AuthorId\": null,\n  \"Status\": null\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -1253,12 +1266,12 @@
                     "List"
                   ]
                 },
-                "description": "Retrieves a paginated list of submitted article pitches via `dbo.fn_get_request_article_list`."
+                "description": "Retrieves a paginated list of Author article requests (`Submitted`, `Approved`, `Rejected`) via `dbo.fn_get_request_article_list` with `@p_exclude_draft = 1`."
               },
               "response": []
             },
             {
-              "name": "Get Request Article Detail",
+              "name": "Get Request Article Detail (With Staged Gallery Photos)",
               "event": [
                 {
                   "listen": "test",
@@ -1268,9 +1281,11 @@
                       "    pm.response.to.have.status(200);",
                       "});",
                       "const json = pm.response.json();",
-                      "pm.test('RequestArticle detail returned', function () {",
+                      "pm.test('RequestArticle detail and gallery returned', function () {",
                       "    pm.expect(json.RespType).to.eql('Success');",
                       "    pm.expect(json.Data.RequestArticleId).to.be.a('string');",
+                      "    pm.expect(json.Data.Title).to.be.a('string');",
+                      "    pm.expect(json.Data.Photos).to.be.an('array');",
                       "});"
                     ],
                     "type": "text/javascript"
@@ -1306,12 +1321,12 @@
                     "Detail"
                   ]
                 },
-                "description": "Fetches a single pitch submission by its 26-char ULID via `dbo.fn_get_request_article_by_id`."
+                "description": "Fetches full staged article details (`Title`, `SubTitle`, `Slug`, `Body`, `PhotoUrl`, `CategoryName`, `AuthorName`, `Status`, `AdminNotes`, `PublishedArticleId`, and `Photos`) by 26-char ULID."
               },
               "response": []
             },
             {
-              "name": "Review Request Article (Approve / Reject)",
+              "name": "Review Request Article - Approve & Auto-Publish",
               "event": [
                 {
                   "listen": "test",
@@ -1321,10 +1336,16 @@
                       "    pm.response.to.have.status(200);",
                       "});",
                       "const json = pm.response.json();",
-                      "pm.test('Pitch reviewed successfully', function () {",
+                      "pm.test('RequestArticle approved and published to Tbl_Article', function () {",
                       "    pm.expect(json.RespType).to.eql('Success');",
                       "    pm.expect(json.Data.Status).to.eql('Approved');",
-                      "});"
+                      "    pm.expect(json.Data.PublishedArticleId).to.be.a('string');",
+                      "});",
+                      "if (json.Data && json.Data.PublishedArticleId) {",
+                      "    pm.collectionVariables.set('publishedArticleId', json.Data.PublishedArticleId);",
+                      "    pm.collectionVariables.set('articleId', json.Data.PublishedArticleId);",
+                      "    console.log('Published to Tbl_Article with ArticleId:', json.Data.PublishedArticleId);",
+                      "}"
                     ],
                     "type": "text/javascript"
                   }
@@ -1340,7 +1361,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"RequestArticleId\": \"{{requestArticleId}}\",\n  \"Status\": \"Approved\",\n  \"AdminNotes\": \"Strong editorial voice and timely topic. Approved for commissioning.\"\n}",
+                  "raw": "{\n  \"RequestArticleId\": \"{{requestArticleId}}\",\n  \"Status\": \"Approved\",\n  \"AdminNotes\": \"Strong editorial voice and timely topic. Approved for publication.\",\n  \"IsFeatured\": true,\n  \"IsSpotlight\": false\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -1359,7 +1380,60 @@
                     "Review"
                   ]
                 },
-                "description": "Updates the review status (`Pending`, `Approved`, `Rejected`), `AdminNotes`, `ReviewedAt`, and `ReviewedByAdminId` for a pitch."
+                "description": "Approves a `Submitted` article request, atomically creates a new `Published` row in `dbo.Tbl_Article`, links all gallery photos in `dbo.Tbl_ArticlePhoto`, and locks the `Tbl_RequestArticle` row."
+              },
+              "response": []
+            },
+            {
+              "name": "Review Request Article - Reject with Feedback",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('RequestArticle rejected with AdminNotes', function () {",
+                      "    pm.expect(json.RespType).to.eql('Success');",
+                      "    pm.expect(json.Data.Status).to.eql('Rejected');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"RequestArticleId\": \"{{requestArticleId}}\",\n  \"Status\": \"Rejected\",\n  \"AdminNotes\": \"Please expand the architectural context and upload higher-resolution courtyard photos before resubmitting.\",\n  \"IsFeatured\": false,\n  \"IsSpotlight\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{adminBaseUrl}}/api/admin/requestarticle/Review",
+                  "host": [
+                    "{{adminBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "requestarticle",
+                    "Review"
+                  ]
+                },
+                "description": "Rejects a `Submitted` article request (`Status = \"Rejected\"`) and stores `AdminNotes` so the Author can edit and resubmit."
               },
               "response": []
             }
@@ -1412,7 +1486,7 @@
     },
     {
       "name": "2. MagizineAuthor.Api (Port 5267)",
-      "description": "Author Portal API (`MagizineAuthor.Api`).\n\nStrictly scopes article queries and mutations to the authenticated author (`AuthorizedAuthorId = 01JAUTHOR00000000000000001`).",
+      "description": "Author Portal API (`MagizineAuthor.Api`).\n\nAll Author article endpoints operate on `dbo.Tbl_RequestArticle` using `RequestArticleId` (26-char ULID), strictly scoped to the authenticated author (`AuthorizedAuthorId = 01JAUTHOR00000000000000001`).\n\n- Authors can create and update articles with `Status = \"Draft\"` or `\"Submitted\"` (or `\"Submit\"`).\n- Articles can be edited or deleted while `Status != \"Approved\"`. Once Admin approves (`Status = \"Approved\"`), the article is published to `dbo.Tbl_Article` and locked.",
       "item": [
         {
           "name": "2.1 Article Category (Author Dropdown)",
@@ -1452,17 +1526,17 @@
                     "list"
                   ]
                 },
-                "description": "Returns all active article categories (`Result<List<ArticleCategoryResModel>>`) to populate the category selector when an author writes a draft."
+                "description": "Returns all active article categories (`Result<List<ArticleCategoryResModel>>`) to populate the category selector when an author writes an article."
               },
               "response": []
             }
           ]
         },
         {
-          "name": "2.2 Author Articles (Drafts & Submissions)",
+          "name": "2.2 Author Articles (Drafts & Submissions in Tbl_RequestArticle)",
           "item": [
             {
-              "name": "List My Articles (Paged)",
+              "name": "List My Articles (Paged - Includes Draft, Submitted, Approved, Rejected)",
               "event": [
                 {
                   "listen": "test",
@@ -1510,12 +1584,12 @@
                     "List"
                   ]
                 },
-                "description": "Lists articles belonging strictly to the logged-in author (`AuthorizedAuthorId`)."
+                "description": "Lists all articles in `Tbl_RequestArticle` belonging strictly to the logged-in author (`Draft`, `Submitted`, `Approved`, `Rejected`)."
               },
               "response": []
             },
             {
-              "name": "Get My Article Detail",
+              "name": "Get My Article Detail (By RequestArticleId)",
               "event": [
                 {
                   "listen": "test",
@@ -1525,9 +1599,10 @@
                       "    pm.response.to.have.status(200);",
                       "});",
                       "const json = pm.response.json();",
-                      "pm.test('My article detail returned', function () {",
+                      "pm.test('My article detail returned with RequestArticleId', function () {",
                       "    pm.expect(json.RespType).to.eql('Success');",
-                      "    pm.expect(json.Data.ArticleId).to.be.a('string');",
+                      "    pm.expect(json.Data.RequestArticleId).to.be.a('string');",
+                      "    pm.expect(json.Data.Photos).to.be.an('array');",
                       "});"
                     ],
                     "type": "text/javascript"
@@ -1544,7 +1619,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"ArticleId\": \"{{authorArticleId}}\"\n}",
+                  "raw": "{\n  \"RequestArticleId\": \"{{authorRequestArticleId}}\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -1563,12 +1638,12 @@
                     "Detail"
                   ]
                 },
-                "description": "Retrieves an article by ID only if it belongs to the authenticated author."
+                "description": "Retrieves a staged article (`RequestArticleResModel`) and its `Photos` gallery by `RequestArticleId` only if it belongs to the authenticated author."
               },
               "response": []
             },
             {
-              "name": "Create Article Draft (Multipart Form-Data + CoverPhoto & GalleryItems)",
+              "name": "Create Article (Draft or Submitted - Multipart Form-Data)",
               "event": [
                 {
                   "listen": "test",
@@ -1579,8 +1654,9 @@
                       "});",
                       "const json = pm.response.json();",
                       "if (json.RespType === 'Success' && json.Data) {",
-                      "    pm.collectionVariables.set('authorArticleId', json.Data.ArticleId);",
-                      "    console.log('Saved authorArticleId:', json.Data.ArticleId);",
+                      "    pm.collectionVariables.set('authorRequestArticleId', json.Data.RequestArticleId);",
+                      "    pm.collectionVariables.set('authorArticleId', json.Data.RequestArticleId);",
+                      "    console.log('Saved authorRequestArticleId:', json.Data.RequestArticleId);",
                       "}"
                     ],
                     "type": "text/javascript"
@@ -1659,14 +1735,10 @@
                       "type": "text"
                     },
                     {
-                      "key": "AuthorId",
-                      "value": "{{authorId}}",
-                      "type": "text"
-                    },
-                    {
                       "key": "Status",
                       "value": "Draft",
-                      "type": "text"
+                      "type": "text",
+                      "description": "Allowed values: 'Draft' or 'Submitted' (also accepts 'Submit')"
                     }
                   ]
                 },
@@ -1682,12 +1754,12 @@
                     "Create"
                   ]
                 },
-                "description": "Creates a new article draft via `multipart/form-data` supporting `CoverPhoto` and `GalleryItems[i]`."
+                "description": "Creates a new article in `dbo.Tbl_RequestArticle` (`Status = \"Draft\"` or `\"Submitted\"`) via `multipart/form-data` supporting `CoverPhoto` and `GalleryItems[i]`."
               },
               "response": []
             },
             {
-              "name": "Update Article Draft (Multipart Form-Data + CoverPhoto & NewGalleryItems)",
+              "name": "Update Article (Editable While Status != Approved - Multipart Form-Data)",
               "event": [
                 {
                   "listen": "test",
@@ -1697,8 +1769,9 @@
                       "    pm.response.to.have.status(200);",
                       "});",
                       "const json = pm.response.json();",
-                      "pm.test('Draft updated successfully', function () {",
+                      "pm.test('Article updated successfully', function () {",
                       "    pm.expect(json.RespType).to.eql('Success');",
+                      "    pm.expect(json.Data.RequestArticleId).to.be.a('string');",
                       "});"
                     ],
                     "type": "text/javascript"
@@ -1712,13 +1785,13 @@
                   "mode": "formdata",
                   "formdata": [
                     {
-                      "key": "ArticleId",
-                      "value": "{{authorArticleId}}",
+                      "key": "RequestArticleId",
+                      "value": "{{authorRequestArticleId}}",
                       "type": "text"
                     },
                     {
                       "key": "Title",
-                      "value": "Ceramics and the Tactile Table (Updated Draft)",
+                      "value": "Ceramics and the Tactile Table (Updated)",
                       "type": "text"
                     },
                     {
@@ -1728,7 +1801,7 @@
                     },
                     {
                       "key": "Body",
-                      "value": "<p>Updated draft with studio interviews from Kyoto and Copenhagen...</p>",
+                      "value": "<p>Updated article with studio interviews from Kyoto and Copenhagen...</p>",
                       "type": "text"
                     },
                     {
@@ -1778,7 +1851,7 @@
                     },
                     {
                       "key": "RemoveArticlePhotoIds[0]",
-                      "value": "01JAPHT0000000000000000001",
+                      "value": "01JAPHT0000000000000000003",
                       "type": "text",
                       "disabled": true
                     },
@@ -1788,9 +1861,10 @@
                       "type": "text"
                     },
                     {
-                      "key": "AuthorId",
-                      "value": "{{authorId}}",
-                      "type": "text"
+                      "key": "Status",
+                      "value": "Draft",
+                      "type": "text",
+                      "description": "Optional status update: 'Draft' or 'Submitted' (editable until Admin marks it 'Approved')"
                     }
                   ]
                 },
@@ -1806,12 +1880,12 @@
                     "Update"
                   ]
                 },
-                "description": "Updates an author's own article draft via `multipart/form-data`."
+                "description": "Updates an author's article in `dbo.Tbl_RequestArticle` via `multipart/form-data`. Allowed while `Status` is `Draft`, `Submitted`, or `Rejected` (locked once `Approved`)."
               },
               "response": []
             },
             {
-              "name": "Submit Draft For Review",
+              "name": "Submit Draft For Review (Status -> Submitted)",
               "event": [
                 {
                   "listen": "test",
@@ -1823,7 +1897,8 @@
                       "const json = pm.response.json();",
                       "pm.test('Submitted for review', function () {",
                       "    pm.expect(json.RespType).to.eql('Success');",
-                      "});"
+                      "});",
+                      "pm.collectionVariables.set('requestArticleId', pm.collectionVariables.get('authorRequestArticleId'));"
                     ],
                     "type": "text/javascript"
                   }
@@ -1839,7 +1914,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"ArticleId\": \"{{authorArticleId}}\"\n}",
+                  "raw": "{\n  \"RequestArticleId\": \"{{authorRequestArticleId}}\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -1858,14 +1933,66 @@
                     "SubmitForReview"
                   ]
                 },
-                "description": "Transitions an author's `Draft` article to `PendingReview` so editors can review and publish it."
+                "description": "Transitions an author's `Draft` or `Rejected` article in `dbo.Tbl_RequestArticle` to `Submitted` so it enters the Admin review queue."
+              },
+              "response": []
+            },
+            {
+              "name": "Delete My Article (Soft Delete - Allowed While Status != Approved)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('Deleted successfully', function () {",
+                      "    pm.expect(json.RespType).to.eql('Success');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"RequestArticleId\": \"{{authorRequestArticleId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{authorBaseUrl}}/api/author/article/Delete",
+                  "host": [
+                    "{{authorBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "author",
+                    "article",
+                    "Delete"
+                  ]
+                },
+                "description": "Soft-deletes an author's article in `dbo.Tbl_RequestArticle` and its staged gallery photos. Blocked if `Status == \"Approved\"`."
               },
               "response": []
             }
           ]
         },
         {
-          "name": "2.3 OpenAPI Spec (Author)",
+          "name": "2.3 OpenAPI & Scalar Docs (Author)",
           "item": [
             {
               "name": "Get Author OpenAPI v1 JSON",
@@ -1885,6 +2012,25 @@
                 "description": "Fetches the generated OpenAPI v1 specification JSON for `MagizineAuthor.Api`."
               },
               "response": []
+            },
+            {
+              "name": "Get Author Scalar API Reference UI",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{authorBaseUrl}}/scalar/v1",
+                  "host": [
+                    "{{authorBaseUrl}}"
+                  ],
+                  "path": [
+                    "scalar",
+                    "v1"
+                  ]
+                },
+                "description": "Loads the interactive Scalar API Reference UI for `MagizineAuthor.Api`."
+              },
+              "response": []
             }
           ]
         }
@@ -1892,7 +2038,7 @@
     },
     {
       "name": "3. MagizinePublic.Api (Port 5080)",
-      "description": "Public Reader API (`MagizinePublic.Api`).\n\nProvides unauthenticated read access to published articles, active categories, and public article pitch submissions.",
+      "description": "Public Reader API (`MagizinePublic.Api`).\n\nProvides unauthenticated read access to `Published` articles (and their linked photo galleries) and active categories.",
       "item": [
         {
           "name": "3.1 Public Article Categories",
@@ -2062,7 +2208,7 @@
               "response": []
             },
             {
-              "name": "Get Published Article By Slug",
+              "name": "Get Published Article By Slug (With Linked Photo Gallery)",
               "event": [
                 {
                   "listen": "test",
@@ -2072,9 +2218,10 @@
                       "    pm.response.to.have.status(200);",
                       "});",
                       "const json = pm.response.json();",
-                      "pm.test('Published article returned by slug', function () {",
+                      "pm.test('Published article returned by slug with Photos array', function () {",
                       "    pm.expect(json.RespType).to.eql('Success');",
                       "    pm.expect(json.Data.Status).to.eql('Published');",
+                      "    pm.expect(json.Data.Photos).to.be.an('array');",
                       "});"
                     ],
                     "type": "text/javascript"
@@ -2096,72 +2243,14 @@
                     "{{articleSlug}}"
                   ]
                 },
-                "description": "Fetches a single `Published` article by its URL slug (e.g., `the-art-of-quiet-luxury`) via `dbo.fn_get_article_by_slug`."
+                "description": "Fetches a single `Published` article and its `Photos` gallery by its URL slug (e.g., `the-art-of-quiet-luxury`) via `dbo.fn_get_article_by_slug` and `dbo.fn_get_article_photos_by_article_id`."
               },
               "response": []
             }
           ]
         },
         {
-          "name": "3.3 Public Request Article (Submit Pitch)",
-          "item": [
-            {
-              "name": "Submit Article Pitch",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      "pm.test('Status code is 200', function () {",
-                      "    pm.response.to.have.status(200);",
-                      "});",
-                      "const json = pm.response.json();",
-                      "pm.test('Pitch submitted successfully', function () {",
-                      "    pm.expect(json.RespType).to.eql('Success');",
-                      "    pm.expect(json.RespCode).to.eql('MS#000');",
-                      "});"
-                    ],
-                    "type": "text/javascript"
-                  }
-                }
-              ],
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"PitcherName\": \"Julian Mercer\",\n  \"PitcherEmail\": \"julian.mercer@example.com\",\n  \"ProposedTitle\": \"The Revival of Analog Print Culture in Tokyo\",\n  \"PitchBody\": \"An exploration of independent bookbinders and paper mills preserving centuries-old techniques in modern Tokyo.\",\n  \"ArticleCategoryId\": \"{{categoryId}}\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{publicBaseUrl}}/api/public/requestarticle/submit",
-                  "host": [
-                    "{{publicBaseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "public",
-                    "requestarticle",
-                    "submit"
-                  ]
-                },
-                "description": "Submits a new article pitch from the public site with initial `Status = Pending`."
-              },
-              "response": []
-            }
-          ]
-        },
-        {
-          "name": "3.4 OpenAPI & Scalar Docs (Public)",
+          "name": "3.3 OpenAPI & Scalar Docs (Public)",
           "item": [
             {
               "name": "Get Public OpenAPI v1 JSON",

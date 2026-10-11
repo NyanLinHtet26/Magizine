@@ -1,10 +1,45 @@
 @MagizineAuthor.Api_HostAddress = http://localhost:5267
 
-# The only route that currently responds: the OpenAPI document.
-# It doubles as a liveness check - a 200 here means the app booted and, if the
-# model builds, that the database wiring resolves. Add endpoint requests below
-# as controllers are implemented.
+### 1. OpenAPI v1 Document
 GET {{MagizineAuthor.Api_HostAddress}}/openapi/v1.json
 Accept: application/json
 
-###
+### 2. Get Active Categories Dropdown List
+GET {{MagizineAuthor.Api_HostAddress}}/api/author/article-category/list
+Accept: application/json
+
+### 3. List My Articles (Tbl_RequestArticle: Draft, Submitted, Approved, Rejected)
+POST {{MagizineAuthor.Api_HostAddress}}/api/author/article/List
+Content-Type: application/json
+
+{
+  "Page": 1,
+  "PageSize": 20,
+  "SearchKeyword": null,
+  "ArticleCategoryId": null,
+  "Status": null
+}
+
+### 4. Get My Article Detail (By RequestArticleId)
+POST {{MagizineAuthor.Api_HostAddress}}/api/author/article/Detail
+Content-Type: application/json
+
+{
+  "RequestArticleId": "01JREQ00000000000000000002"
+}
+
+### 5. Submit My Draft Article for Admin Review
+POST {{MagizineAuthor.Api_HostAddress}}/api/author/article/SubmitForReview
+Content-Type: application/json
+
+{
+  "RequestArticleId": "01JREQ00000000000000000002"
+}
+
+### 6. Delete My Article (Allowed While Status != Approved)
+POST {{MagizineAuthor.Api_HostAddress}}/api/author/article/Delete
+Content-Type: application/json
+
+{
+  "RequestArticleId": "01JREQ00000000000000000002"
+}

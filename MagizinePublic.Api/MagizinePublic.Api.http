@@ -1,23 +1,21 @@
 @MagizinePublic.Api_HostAddress = http://localhost:5080
 
-# The only route that currently responds: the OpenAPI document.
-# It doubles as a liveness check - a 200 here means the app booted and, if the
-# model builds, that the database wiring resolves. Add endpoint requests below
-# as controllers are implemented.
+### 1. OpenAPI v1 Document
 GET {{MagizinePublic.Api_HostAddress}}/openapi/v1.json
 Accept: application/json
 
-###
-
-# Fetch the list of active article categories
+### 2. Fetch the list of active article categories
 GET {{MagizinePublic.Api_HostAddress}}/api/public/article-category/list
 Accept: application/json
 
-###
-
-# Fetch details of a specific article category by its slug
-# Replace 'test-category' with an actual slug in your database
-GET {{MagizinePublic.Api_HostAddress}}/api/public/article-category/test-category
+### 3. Fetch details of a specific article category by its slug
+GET {{MagizinePublic.Api_HostAddress}}/api/public/article-category/beauty
 Accept: application/json
 
-###
+### 4. Fetch paginated list of Published articles
+GET {{MagizinePublic.Api_HostAddress}}/api/public/article/list?Page=1&PageSize=20
+Accept: application/json
+
+### 5. Fetch a single Published article and its linked gallery photos by slug
+GET {{MagizinePublic.Api_HostAddress}}/api/public/article/the-art-of-quiet-luxury
+Accept: application/json

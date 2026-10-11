@@ -92,8 +92,8 @@ Base Route: `/api/author/article`
 #### `FormData` Fields:
 | Field Name | Type | Required | Description |
 | :--- | :--- | :---: | :--- |
-| `Title` | `string` | ✅ Yes | Headline (max 250 chars) |
-| `SubTitle` | `string` | No | Subtitle (max 500 chars) |
+| `Title` | `string` | ✅ Yes | Headline (max 200 chars) |
+| `SubTitle` | `string` | No | Subtitle (max 400 chars) |
 | `Body` | `string` | No | Rich text / HTML article body |
 | `ArticleCategoryId` | `string` | ✅ Yes | 26-char ULID of category |
 | `Status` | `string` | No | `"Draft"` (default) or `"Submitted"` (also accepts `"Submit"`) |

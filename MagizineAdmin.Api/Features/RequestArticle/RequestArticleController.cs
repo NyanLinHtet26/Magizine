@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace MagizineAdmin.Api.Features.RequestArticle;
 
-// [Authorize] // Temporarily commented out for testing
+[Authorize]
 [ApiController]
 [Route("api/admin/requestarticle")]
 public sealed class RequestArticleController : ControllerBase

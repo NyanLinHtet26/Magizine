@@ -46,53 +46,66 @@ GO
 -- 1. Tbl_Admin
 -- ----------------------------------------------------------------------------
 CREATE TABLE dbo.Tbl_Admin (
-    AdminId           VARCHAR(26) NOT NULL PRIMARY KEY,
-    Username          NVARCHAR(50) NOT NULL,
-    Email             NVARCHAR(100) NOT NULL,
-    PasswordHash      NVARCHAR(255) NOT NULL,
-    Role              NVARCHAR(30) NOT NULL CONSTRAINT DF_Admin_Role DEFAULT N'Editor',
-    LastLoginAt       DATETIMEOFFSET NULL,
-    IsActive          BIT NOT NULL CONSTRAINT DF_Admin_IsActive DEFAULT 1,
-    CreatedAt         DATETIMEOFFSET NOT NULL CONSTRAINT DF_Admin_CreatedAt DEFAULT SYSDATETIMEOFFSET(),
-    UpdatedAt         DATETIMEOFFSET NULL,
-    IsDeleted         BIT NOT NULL CONSTRAINT DF_Admin_IsDeleted DEFAULT 0,
-    DeletedAt         DATETIMEOFFSET NULL,
-    DeletedByAdminId  VARCHAR(26) NULL CONSTRAINT FK_Admin_DeletedByAdmin REFERENCES dbo.Tbl_Admin(AdminId)
+    AdminId                       VARCHAR(26) NOT NULL PRIMARY KEY,
+    Username                      NVARCHAR(50) NOT NULL,
+    Email                         NVARCHAR(100) NOT NULL,
+    PasswordHash                  NVARCHAR(255) NOT NULL,
+    Role                          NVARCHAR(30) NOT NULL CONSTRAINT DF_Admin_Role DEFAULT N'Editor',
+    RefreshTokenHash              NVARCHAR(128) NULL,
+    RefreshTokenExpiresAt         DATETIMEOFFSET NULL,
+    PreviousRefreshTokenHash      NVARCHAR(128) NULL,
+    PreviousRefreshTokenExpiresAt DATETIMEOFFSET NULL,
+    LastLoginAt                   DATETIMEOFFSET NULL,
+    IsActive                      BIT NOT NULL CONSTRAINT DF_Admin_IsActive DEFAULT 1,
+    CreatedAt                     DATETIMEOFFSET NOT NULL CONSTRAINT DF_Admin_CreatedAt DEFAULT SYSDATETIMEOFFSET(),
+    UpdatedAt                     DATETIMEOFFSET NULL,
+    IsDeleted                     BIT NOT NULL CONSTRAINT DF_Admin_IsDeleted DEFAULT 0,
+    DeletedAt                     DATETIMEOFFSET NULL,
+    DeletedByAdminId              VARCHAR(26) NULL CONSTRAINT FK_Admin_DeletedByAdmin REFERENCES dbo.Tbl_Admin(AdminId)
 );
 GO
 
-CREATE UNIQUE NONCLUSTERED INDEX UX_Tbl_Admin_Username_NotDeleted ON dbo.Tbl_Admin(Username) WHERE IsDeleted = 0;
-CREATE UNIQUE NONCLUSTERED INDEX UX_Tbl_Admin_Email_NotDeleted    ON dbo.Tbl_Admin(Email)    WHERE IsDeleted = 0;
+CREATE UNIQUE NONCLUSTERED INDEX UX_Tbl_Admin_Username_NotDeleted     ON dbo.Tbl_Admin(Username)                 WHERE IsDeleted = 0;
+CREATE UNIQUE NONCLUSTERED INDEX UX_Tbl_Admin_Email_NotDeleted        ON dbo.Tbl_Admin(Email)                    WHERE IsDeleted = 0;
+CREATE NONCLUSTERED INDEX        IX_Tbl_Admin_RefreshTokenHash         ON dbo.Tbl_Admin(RefreshTokenHash)         WHERE RefreshTokenHash IS NOT NULL AND IsDeleted = 0;
+CREATE NONCLUSTERED INDEX        IX_Tbl_Admin_PreviousRefreshTokenHash ON dbo.Tbl_Admin(PreviousRefreshTokenHash) WHERE PreviousRefreshTokenHash IS NOT NULL AND IsDeleted = 0;
 GO
 
 -- ----------------------------------------------------------------------------
 -- 2. Tbl_Author
 -- ----------------------------------------------------------------------------
 CREATE TABLE dbo.Tbl_Author (
-    AuthorId          VARCHAR(26) NOT NULL PRIMARY KEY,
-    FirstName         NVARCHAR(50) NOT NULL,
-    LastName          NVARCHAR(50) NOT NULL,
-    Email             NVARCHAR(100) NOT NULL,
-    PasswordHash      NVARCHAR(255) NOT NULL,
-    Title             NVARCHAR(100) NULL,
-    Bio               NVARCHAR(500) NULL,
-    PhotoUrl          NVARCHAR(300) NULL,
-    InstagramUrl      NVARCHAR(300) NULL,
-    TwitterUrl        NVARCHAR(300) NULL,
-    WebsiteUrl        NVARCHAR(300) NULL,
-    Slug              NVARCHAR(100) NOT NULL,
-    IsApproved        BIT NOT NULL CONSTRAINT DF_Author_IsApproved DEFAULT 0,
-    IsActive          BIT NOT NULL CONSTRAINT DF_Author_IsActive DEFAULT 1,
-    CreatedAt         DATETIMEOFFSET NOT NULL CONSTRAINT DF_Author_CreatedAt DEFAULT SYSDATETIMEOFFSET(),
-    UpdatedAt         DATETIMEOFFSET NULL,
-    IsDeleted         BIT NOT NULL CONSTRAINT DF_Author_IsDeleted DEFAULT 0,
-    DeletedAt         DATETIMEOFFSET NULL,
-    DeletedByAdminId  VARCHAR(26) NULL CONSTRAINT FK_Author_DeletedByAdmin REFERENCES dbo.Tbl_Admin(AdminId)
+    AuthorId                      VARCHAR(26) NOT NULL PRIMARY KEY,
+    FirstName                     NVARCHAR(50) NOT NULL,
+    LastName                      NVARCHAR(50) NOT NULL,
+    Email                         NVARCHAR(100) NOT NULL,
+    PasswordHash                  NVARCHAR(255) NOT NULL,
+    Title                         NVARCHAR(100) NULL,
+    Bio                           NVARCHAR(500) NULL,
+    PhotoUrl                      NVARCHAR(300) NULL,
+    InstagramUrl                  NVARCHAR(300) NULL,
+    TwitterUrl                    NVARCHAR(300) NULL,
+    WebsiteUrl                    NVARCHAR(300) NULL,
+    Slug                          NVARCHAR(100) NOT NULL,
+    RefreshTokenHash              NVARCHAR(128) NULL,
+    RefreshTokenExpiresAt         DATETIMEOFFSET NULL,
+    PreviousRefreshTokenHash      NVARCHAR(128) NULL,
+    PreviousRefreshTokenExpiresAt DATETIMEOFFSET NULL,
+    LastLoginAt                   DATETIMEOFFSET NULL,
+    IsApproved                    BIT NOT NULL CONSTRAINT DF_Author_IsApproved DEFAULT 0,
+    IsActive                      BIT NOT NULL CONSTRAINT DF_Author_IsActive DEFAULT 1,
+    CreatedAt                     DATETIMEOFFSET NOT NULL CONSTRAINT DF_Author_CreatedAt DEFAULT SYSDATETIMEOFFSET(),
+    UpdatedAt                     DATETIMEOFFSET NULL,
+    IsDeleted                     BIT NOT NULL CONSTRAINT DF_Author_IsDeleted DEFAULT 0,
+    DeletedAt                     DATETIMEOFFSET NULL,
+    DeletedByAdminId              VARCHAR(26) NULL CONSTRAINT FK_Author_DeletedByAdmin REFERENCES dbo.Tbl_Admin(AdminId)
 );
 GO
 
-CREATE UNIQUE NONCLUSTERED INDEX UX_Tbl_Author_Email_NotDeleted ON dbo.Tbl_Author(Email) WHERE IsDeleted = 0;
-CREATE UNIQUE NONCLUSTERED INDEX UX_Tbl_Author_Slug_NotDeleted  ON dbo.Tbl_Author(Slug)  WHERE IsDeleted = 0;
+CREATE UNIQUE NONCLUSTERED INDEX UX_Tbl_Author_Email_NotDeleted         ON dbo.Tbl_Author(Email)                    WHERE IsDeleted = 0;
+CREATE UNIQUE NONCLUSTERED INDEX UX_Tbl_Author_Slug_NotDeleted          ON dbo.Tbl_Author(Slug)                     WHERE IsDeleted = 0;
+CREATE NONCLUSTERED INDEX        IX_Tbl_Author_RefreshTokenHash         ON dbo.Tbl_Author(RefreshTokenHash)         WHERE RefreshTokenHash IS NOT NULL AND IsDeleted = 0;
+CREATE NONCLUSTERED INDEX        IX_Tbl_Author_PreviousRefreshTokenHash ON dbo.Tbl_Author(PreviousRefreshTokenHash) WHERE PreviousRefreshTokenHash IS NOT NULL AND IsDeleted = 0;
 GO
 
 -- ----------------------------------------------------------------------------
@@ -785,7 +798,7 @@ BEGIN
         '01JADMIN000000000000000001',
         'superadmin',
         'admin@ledition.com',
-        '$2a$12$e0NRiA4b2VwYQcT7X8mOVuYqHhFhR8rUj2V0Wb8Z0XlK1mG5o6Pfa',
+        '$2a$12$TIcVIJCHDmVR.1v63Ap/4eFbqiviwmsBe6Di5kkDaiuiD58n5HxN.',
         'SuperAdmin',
         1,
         SYSDATETIMEOFFSET()
@@ -830,7 +843,7 @@ BEGIN
         N'Elena',
         N'Rostova',
         N'elena.rostova@ledition.com',
-        N'$2a$12$e0NRiA4b2VwYQcT7X8mOVuYqHhFhR8rUj2V0Wb8Z0XlK1mG5o6Pfa',
+        N'$2a$12$TIcVIJCHDmVR.1v63Ap/4eFbqiviwmsBe6Di5kkDaiuiD58n5HxN.',
         N'Senior Editor & Cultural Essayist',
         N'Elena Rostova writes on quiet luxury, minimalist aesthetics, and modern literature.',
         N'https://images.unsplash.com/photo-1534528741775-53994a69daeb',

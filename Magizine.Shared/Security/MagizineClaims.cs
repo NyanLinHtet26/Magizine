@@ -33,4 +33,19 @@ public static class MagizineClaims
 
     /// <summary>Value of <see cref="TokenType"/> for a normal API token.</summary>
     public const string AccessTokenType = "access";
+
+    /// <summary>HttpOnly cookie carrying the short-lived JWT access token for Admin API calls.</summary>
+    public const string AdminAccessTokenCookie = "admin_access_token";
+
+    /// <summary>HttpOnly cookie carrying the long-lived opaque refresh token, scoped to /api/admin/auth.</summary>
+    public const string AdminRefreshTokenCookie = "admin_refresh_token";
+
+    /// <summary>Role claim value embedded in Author JWTs.</summary>
+    public const string AuthorRole = "Author";
+
+    /// <summary>HttpOnly cookie carrying the short-lived JWT access token for Author API calls.</summary>
+    public const string AuthorAccessTokenCookie = "author_access_token";
+
+    /// <summary>HttpOnly cookie carrying the long-lived opaque refresh token, scoped to /api/author/auth.</summary>
+    public const string AuthorRefreshTokenCookie = "author_refresh_token";
 }

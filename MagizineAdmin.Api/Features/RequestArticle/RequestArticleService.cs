@@ -5,7 +5,9 @@ using Magizine.Shared.Models;
 using Magizine.Shared.Models.Article;
 using Magizine.Shared.Models.Paging;
 using Magizine.Shared.Models.RequestArticle;
+using Magizine.Shared.Security;
 using Magizine.Shared.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -15,15 +17,21 @@ public sealed class RequestArticleService
 {
     private readonly MagizineDbContext _db;
     private readonly DapperService _dapperService;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<RequestArticleService> _logger;
 
-    // TODO: Extract from HttpContext when Auth is fully active
-    private string AuthorizedAdminId => "01JADMIN000000000000000001";
+    private string? AuthorizedAdminId =>
+        _httpContextAccessor.HttpContext?.User?.FindFirst(MagizineClaims.Subject)?.Value;
 
-    public RequestArticleService(MagizineDbContext db, DapperService dapperService, ILogger<RequestArticleService> logger)
+    public RequestArticleService(
+        MagizineDbContext db,
+        DapperService dapperService,
+        IHttpContextAccessor httpContextAccessor,
+        ILogger<RequestArticleService> logger)
     {
         _db = db;
         _dapperService = dapperService;
+        _httpContextAccessor = httpContextAccessor;
         _logger = logger;
     }
 

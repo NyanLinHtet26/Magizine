@@ -5,7 +5,9 @@ using Magizine.Shared.Models;
 using Magizine.Shared.Models.Article;
 using Magizine.Shared.Models.Paging;
 using Magizine.Shared.Models.RequestArticle;
+using Magizine.Shared.Security;
 using Magizine.Shared.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -18,20 +20,24 @@ public sealed class ArticleService
     private readonly MagizineDbContext _db;
     private readonly DapperService _dapperService;
     private readonly IFileStorageService _fileStorage;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<ArticleService> _logger;
 
-    // TODO: Extract from HttpContext when Auth is fully active
-    private string AuthorizedAuthorId => "01JAUTHOR00000000000000001"; // Temporarily hardcoded for Author testing
+    private string AuthorizedAuthorId =>
+        _httpContextAccessor.HttpContext?.User?.FindFirst(MagizineClaims.Subject)?.Value
+        ?? throw new UnauthorizedAccessException("Authenticated AuthorId claim is missing.");
 
     public ArticleService(
         MagizineDbContext db,
         DapperService dapperService,
         IFileStorageService fileStorage,
+        IHttpContextAccessor httpContextAccessor,
         ILogger<ArticleService> logger)
     {
         _db = db;
         _dapperService = dapperService;
         _fileStorage = fileStorage;
+        _httpContextAccessor = httpContextAccessor;
         _logger = logger;
     }
 

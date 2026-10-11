@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace MagizineAdmin.Api.Features.Author;
 
-// [Authorize] // Temporarily commented out for testing without a login token
+[Authorize]
 [ApiController]
 [Route("api/admin/author")]
 public sealed class AuthorController : ControllerBase

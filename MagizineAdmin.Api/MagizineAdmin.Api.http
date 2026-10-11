@@ -4,8 +4,42 @@
 GET {{MagizineAdmin.Api_HostAddress}}/openapi/v1.json
 Accept: application/json
 
-### 2. List Submitted Request Articles (Excludes Author Drafts)
+### 2. Admin Sign-In (Sets HttpOnly Cookies + Returns AccessToken)
+# @name adminLogin
+POST {{MagizineAdmin.Api_HostAddress}}/api/admin/auth/Login
+Content-Type: application/json
+
+{
+  "UsernameOrEmail": "superadmin",
+  "Password": "Admin@123"
+}
+
+###
+@admin_token = {{adminLogin.response.body.Data.AccessToken}}
+
+### 3. Get Current Admin Profile (/Me)
+GET {{MagizineAdmin.Api_HostAddress}}/api/admin/auth/Me
+Authorization: Bearer {{admin_token}}
+
+### 4. Refresh Admin Session (Uses admin_refresh_token HttpOnly Cookie + 30s Grace Period)
+POST {{MagizineAdmin.Api_HostAddress}}/api/admin/auth/Refresh
+Content-Type: application/json
+
+{}
+
+### 5. Update Current Admin Profile
+POST {{MagizineAdmin.Api_HostAddress}}/api/admin/auth/UpdateProfile
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+{
+  "Username": "superadmin",
+  "Email": "admin@ledition.com"
+}
+
+### 6. List Submitted Request Articles (Excludes Author Drafts)
 POST {{MagizineAdmin.Api_HostAddress}}/api/admin/requestarticle/List
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 
 {
@@ -17,16 +51,18 @@ Content-Type: application/json
   "Status": null
 }
 
-### 3. Get Request Article Detail (With Staged Gallery Photos)
+### 7. Get Request Article Detail (With Staged Gallery Photos)
 POST {{MagizineAdmin.Api_HostAddress}}/api/admin/requestarticle/Detail
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 
 {
   "RequestArticleId": "01JREQ00000000000000000001"
 }
 
-### 4. Review Request Article (Approve -> Auto-Publishes to Tbl_Article)
+### 8. Review Request Article (Approve -> Auto-Publishes to Tbl_Article)
 POST {{MagizineAdmin.Api_HostAddress}}/api/admin/requestarticle/Review
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 
 {
@@ -37,8 +73,9 @@ Content-Type: application/json
   "IsSpotlight": false
 }
 
-### 5. List Published Articles (Tbl_Article)
+### 9. List Published Articles (Tbl_Article)
 POST {{MagizineAdmin.Api_HostAddress}}/api/admin/article/List
+Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 
 {
@@ -51,3 +88,10 @@ Content-Type: application/json
   "IsFeatured": null,
   "IsSpotlight": null
 }
+
+### 10. Admin Logout (Clears RefreshTokenHash & PreviousRefreshTokenHash + Deletes HttpOnly Cookies)
+POST {{MagizineAdmin.Api_HostAddress}}/api/admin/auth/Logout
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+{}

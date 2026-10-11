@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Magizine.DataBase.Models;
@@ -28,6 +28,16 @@ public partial class TblAuthor
     public string? WebsiteUrl { get; set; }
 
     public string Slug { get; set; } = null!;
+
+    public string? RefreshTokenHash { get; set; }
+
+    public DateTimeOffset? RefreshTokenExpiresAt { get; set; }
+
+    public string? PreviousRefreshTokenHash { get; set; }
+
+    public DateTimeOffset? PreviousRefreshTokenExpiresAt { get; set; }
+
+    public DateTimeOffset? LastLoginAt { get; set; }
 
     public bool IsApproved { get; set; }
 

@@ -5,6 +5,7 @@ using Magizine.Shared.Exceptions;
 using Magizine.Shared.JsonResources;
 using Magizine.Shared.Security;
 using MagizineAdmin.Api.Features.ArticleCategory;
+using MagizineAdmin.Api.Features.Auth;
 using MagizineAdmin.Api.Features.Author;
 using MagizineAdmin.Api.Features.Article;
 using MagizineAdmin.Api.Features.RequestArticle;
@@ -100,7 +101,8 @@ public static class FeatureManager
                 .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                 // Tight on purpose. A custom request header needs adding here, and the preflight
                 // failure that results is a clear signal rather than a silent open door.
-                .WithHeaders("Authorization", "Content-Type", "Accept");
+                .WithHeaders("Authorization", "Content-Type", "Accept")
+                .AllowCredentials();
         }));
 
         return builder;
@@ -140,6 +142,31 @@ public static class FeatureManager
 
                 options.Events = new JwtBearerEvents
                 {
+                    OnMessageReceived = context =>
+                    {
+                        // Priority 1: Standard Authorization: Bearer <token> header.
+                        // Priority 2: Fallback to the HttpOnly admin_access_token cookie for Browser SPAs.
+                        if (string.IsNullOrEmpty(context.Request.Headers.Authorization) &&
+                            context.Request.Cookies.TryGetValue(MagizineClaims.AdminAccessTokenCookie, out var cookieToken) &&
+                            !string.IsNullOrWhiteSpace(cookieToken))
+                        {
+                            context.Token = cookieToken;
+                        }
+
+                        return Task.CompletedTask;
+                    },
+
+                    OnTokenValidated = context =>
+                    {
+                        var tokenType = context.Principal?.FindFirst(MagizineClaims.TokenType)?.Value;
+                        if (!string.Equals(tokenType, MagizineClaims.AccessTokenType, StringComparison.Ordinal))
+                        {
+                            context.Fail("Invalid token purpose.");
+                        }
+
+                        return Task.CompletedTask;
+                    },
+
                     // HandleResponse is set on both, so the envelope is always the body. The
                     // framework's own challenge is an empty 401, which would break the one-shape
                     // contract clients rely on. Because we suppress it, WWW-Authenticate is
@@ -256,6 +283,7 @@ public static class FeatureManager
     {
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddMagizineFileStorage(builder.Configuration);
+        builder.Services.AddScoped<AuthService>();
         builder.Services.AddScoped<ArticleCategoryService>();
         builder.Services.AddScoped<AuthorService>();
         builder.Services.AddScoped<ArticleService>();

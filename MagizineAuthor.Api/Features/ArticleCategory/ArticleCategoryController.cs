@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace MagizineAuthor.Api.Features.ArticleCategory;
 
-// [Authorize] // Temporarily commented out for testing
+[Authorize]
 [ApiController]
 [Route("api/author/article-category")]
 public sealed class ArticleCategoryController : ControllerBase

@@ -100,8 +100,283 @@
   "item": [
     {
       "name": "1. MagizineAdmin.Api (Port 5024)",
-      "description": "Back-office editorial administration API (`MagizineAdmin.Api`).\n\nIncludes full CRUD and status workflows for:\n- Article Categories (`/api/admin/article-category`)\n- Authors (`/api/admin/author`)\n- Published Articles (`/api/admin/article`)\n- Author Article Submissions & Approval Queue (`/api/admin/requestarticle`)",
+      "description": "Back-office editorial administration API (`MagizineAdmin.Api`).\n\nIncludes full CRUD and status workflows for:\n- Admin Authentication & Concurrent Refresh (`/api/admin/auth`)\n- Article Categories (`/api/admin/article-category`)\n- Authors (`/api/admin/author`)\n- Published Articles (`/api/admin/article`)\n- Author Article Submissions & Approval Queue (`/api/admin/requestarticle`)",
       "item": [
+        {
+          "name": "1.0 Admin Auth (Login, Refresh, Me, Logout)",
+          "description": "Enterprise-grade Admin Authentication & Authorization flow (`AccessToken` + Rotating `RefreshToken` + `HttpOnly` Cookies + 30-Second Concurrent Grace Period).",
+          "item": [
+            {
+              "name": "Admin Login (Sets HttpOnly Cookies + Captures jwtToken)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('Login succeeded and issued AccessToken', function () {",
+                      "    pm.expect(json.IsSuccess).to.eql(true);",
+                      "    pm.expect(json.RespCode).to.eql('MS#000');",
+                      "    pm.expect(json.Data.AccessToken).to.be.a('string').and.not.empty;",
+                      "});",
+                      "if (json && json.Data && json.Data.AccessToken) {",
+                      "    pm.collectionVariables.set('jwtToken', json.Data.AccessToken);",
+                      "    if (pm.environment && pm.environment.name) {",
+                      "        pm.environment.set('jwtToken', json.Data.AccessToken);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"UsernameOrEmail\": \"superadmin\",\n  \"Password\": \"Admin@123\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{adminBaseUrl}}/api/admin/auth/Login",
+                  "host": [
+                    "{{adminBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "auth",
+                    "Login"
+                  ]
+                },
+                "description": "Authenticates an Admin by `Username` or `Email` + `Password` (`Admin@123`).\n\n- Sets `admin_access_token` (`HttpOnly`, `Path=/`) and `admin_refresh_token` (`HttpOnly`, `Path=/api/admin/auth`) cookies.\n- Automatically saves `Data.AccessToken` into `{{jwtToken}}` for Bearer authentication."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Current Admin Profile (/Me)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('Returns authenticated admin profile', function () {",
+                      "    pm.expect(json.IsSuccess).to.eql(true);",
+                      "    pm.expect(json.Data.Username).to.be.a('string');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{adminBaseUrl}}/api/admin/auth/Me",
+                  "host": [
+                    "{{adminBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "auth",
+                    "Me"
+                  ]
+                },
+                "description": "Returns the currently authenticated Admin's profile using either the `Authorization: Bearer {{jwtToken}}` header or the `admin_access_token` `HttpOnly` cookie."
+              },
+              "response": []
+            },
+            {
+              "name": "Refresh Token (Rotates Token + 30s Concurrent Grace Period)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('Refresh succeeded and issued new AccessToken', function () {",
+                      "    pm.expect(json.IsSuccess).to.eql(true);",
+                      "    pm.expect(json.Data.AccessToken).to.be.a('string').and.not.empty;",
+                      "});",
+                      "if (json && json.Data && json.Data.AccessToken) {",
+                      "    pm.collectionVariables.set('jwtToken', json.Data.AccessToken);",
+                      "    if (pm.environment && pm.environment.name) {",
+                      "        pm.environment.set('jwtToken', json.Data.AccessToken);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{adminBaseUrl}}/api/admin/auth/Refresh",
+                  "host": [
+                    "{{adminBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "auth",
+                    "Refresh"
+                  ]
+                },
+                "description": "Reads the `admin_refresh_token` `HttpOnly` cookie, rotates the refresh token, moves the old hash to `PreviousRefreshTokenHash` with a 30-second grace window (`PreviousRefreshTokenExpiresAt = UtcNow + 30s`), and issues a new `AccessToken` + `RefreshToken`."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Current Admin Profile",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"Username\": \"superadmin\",\n  \"Email\": \"admin@ledition.com\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{adminBaseUrl}}/api/admin/auth/UpdateProfile",
+                  "host": [
+                    "{{adminBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "auth",
+                    "UpdateProfile"
+                  ]
+                },
+                "description": "Updates the authenticated Admin's `Username` and `Email`."
+              },
+              "response": []
+            },
+            {
+              "name": "Change Admin Password",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"CurrentPassword\": \"Admin@123\",\n  \"NewPassword\": \"Admin@1234\",\n  \"ConfirmNewPassword\": \"Admin@1234\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{adminBaseUrl}}/api/admin/auth/ChangePassword",
+                  "host": [
+                    "{{adminBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "auth",
+                    "ChangePassword"
+                  ]
+                },
+                "description": "Changes the authenticated Admin's password and revokes active refresh tokens (`RefreshTokenHash` and `PreviousRefreshTokenHash`)."
+              },
+              "response": []
+            },
+            {
+              "name": "Admin Logout (Revokes RefreshToken + Deletes HttpOnly Cookies)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{adminBaseUrl}}/api/admin/auth/Logout",
+                  "host": [
+                    "{{adminBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "auth",
+                    "Logout"
+                  ]
+                },
+                "description": "Clears `RefreshTokenHash`, `RefreshTokenExpiresAt`, `PreviousRefreshTokenHash`, and `PreviousRefreshTokenExpiresAt` in `dbo.Tbl_Admin` and deletes both `HttpOnly` cookies."
+              },
+              "response": []
+            }
+          ]
+        },
         {
           "name": "1.1 Article Category",
           "description": "Manage article categories (`Tbl_ArticleCategory`).",
@@ -1486,8 +1761,321 @@
     },
     {
       "name": "2. MagizineAuthor.Api (Port 5267)",
-      "description": "Author Portal API (`MagizineAuthor.Api`).\n\nAll Author article endpoints operate on `dbo.Tbl_RequestArticle` using `RequestArticleId` (26-char ULID), strictly scoped to the authenticated author (`AuthorizedAuthorId = 01JAUTHOR00000000000000001`).\n\n- Authors can create and update articles with `Status = \"Draft\"` or `\"Submitted\"` (or `\"Submit\"`).\n- Articles can be edited or deleted while `Status != \"Approved\"`. Once Admin approves (`Status = \"Approved\"`), the article is published to `dbo.Tbl_Article` and locked.",
+      "description": "Author Portal API (`MagizineAuthor.Api`).\n\nIncludes:\n- Author Authentication, Self-Registration & 30s Grace-Period Refresh (`/api/author/auth`)\n- Active Categories Dropdown (`/api/author/article-category`)\n- Author Articles in `dbo.Tbl_RequestArticle` (`/api/author/article`), strictly scoped to the authenticated author (`sub` claim).",
       "item": [
+        {
+          "name": "2.0 Author Auth (Register, Login, Refresh, Me, Logout)",
+          "description": "Enterprise-grade Author Authentication & Authorization flow (`AccessToken` + Rotating `RefreshToken` + `HttpOnly` Cookies `author_access_token` / `author_refresh_token` + 30-Second Concurrent Grace Period).",
+          "item": [
+            {
+              "name": "Author Self-Registration (IsApproved = false, Pending Admin Approval)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"FirstName\": \"Julian\",\n  \"LastName\": \"Vance\",\n  \"Email\": \"julian.vance@ledition.com\",\n  \"Password\": \"Author@123\",\n  \"ConfirmPassword\": \"Author@123\",\n  \"Title\": \"Architectural Critic\",\n  \"Bio\": \"Writes on brutalist geometry and Nordic interiors.\",\n  \"PhotoUrl\": null,\n  \"InstagramUrl\": \"https://instagram.com/julianvance\",\n  \"TwitterUrl\": null,\n  \"WebsiteUrl\": \"https://julianvance.com\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{authorBaseUrl}}/api/author/auth/Register",
+                  "host": [
+                    "{{authorBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "author",
+                    "auth",
+                    "Register"
+                  ]
+                },
+                "description": "Registers a new Author account with `IsApproved = false` and `IsActive = true`. Requires Admin approval (`/api/admin/author/ChangeStatus`) before sign-in."
+              },
+              "response": []
+            },
+            {
+              "name": "Author Login (Sets HttpOnly Cookies + Captures jwtToken)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('Author login succeeded and issued AccessToken', function () {",
+                      "    pm.expect(json.IsSuccess).to.eql(true);",
+                      "    pm.expect(json.RespCode).to.eql('MS#000');",
+                      "    pm.expect(json.Data.AccessToken).to.be.a('string').and.not.empty;",
+                      "});",
+                      "if (json && json.Data && json.Data.AccessToken) {",
+                      "    pm.collectionVariables.set('jwtToken', json.Data.AccessToken);",
+                      "    if (pm.environment && pm.environment.name) {",
+                      "        pm.environment.set('jwtToken', json.Data.AccessToken);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"EmailOrSlug\": \"elena.rostova@ledition.com\",\n  \"Password\": \"Admin@123\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{authorBaseUrl}}/api/author/auth/Login",
+                  "host": [
+                    "{{authorBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "author",
+                    "auth",
+                    "Login"
+                  ]
+                },
+                "description": "Authenticates an approved Author by `Email` (`elena.rostova@ledition.com`) or `Slug` (`elena-rostova`) + `Password` (`Admin@123`).\n\n- Sets `author_access_token` (`HttpOnly`, `Path=/`) and `author_refresh_token` (`HttpOnly`, `Path=/api/author/auth`) cookies.\n- Automatically saves `Data.AccessToken` into `{{jwtToken}}`."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Current Author Profile (/Me)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('Returns authenticated author profile', function () {",
+                      "    pm.expect(json.IsSuccess).to.eql(true);",
+                      "    pm.expect(json.Data.Email).to.be.a('string');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{authorBaseUrl}}/api/author/auth/Me",
+                  "host": [
+                    "{{authorBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "author",
+                    "auth",
+                    "Me"
+                  ]
+                },
+                "description": "Returns the currently authenticated Author's profile using either `Authorization: Bearer {{jwtToken}}` or the `author_access_token` `HttpOnly` cookie."
+              },
+              "response": []
+            },
+            {
+              "name": "Refresh Author Token (Rotates Token + 30s Concurrent Grace Period)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('Refresh succeeded and issued new AccessToken', function () {",
+                      "    pm.expect(json.IsSuccess).to.eql(true);",
+                      "    pm.expect(json.Data.AccessToken).to.be.a('string').and.not.empty;",
+                      "});",
+                      "if (json && json.Data && json.Data.AccessToken) {",
+                      "    pm.collectionVariables.set('jwtToken', json.Data.AccessToken);",
+                      "    if (pm.environment && pm.environment.name) {",
+                      "        pm.environment.set('jwtToken', json.Data.AccessToken);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{authorBaseUrl}}/api/author/auth/Refresh",
+                  "host": [
+                    "{{authorBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "author",
+                    "auth",
+                    "Refresh"
+                  ]
+                },
+                "description": "Reads the `author_refresh_token` `HttpOnly` cookie, rotates the refresh token, moves the old hash to `PreviousRefreshTokenHash` (`UtcNow + 30s`), and issues a new `AccessToken` + `RefreshToken`."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Current Author Profile",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"FirstName\": \"Elena\",\n  \"LastName\": \"Rostova\",\n  \"Email\": \"elena.rostova@ledition.com\",\n  \"Title\": \"Senior Editor & Cultural Essayist\",\n  \"Bio\": \"Elena Rostova writes on quiet luxury, minimalist aesthetics, and modern literature.\",\n  \"PhotoUrl\": \"https://images.unsplash.com/photo-1534528741775-53994a69daeb\",\n  \"InstagramUrl\": \"https://instagram.com/elenarostova\",\n  \"TwitterUrl\": \"https://twitter.com/elenarostova\",\n  \"WebsiteUrl\": \"https://elenarostova.com\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{authorBaseUrl}}/api/author/auth/UpdateProfile",
+                  "host": [
+                    "{{authorBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "author",
+                    "auth",
+                    "UpdateProfile"
+                  ]
+                },
+                "description": "Updates the authenticated Author's profile details."
+              },
+              "response": []
+            },
+            {
+              "name": "Change Author Password",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"CurrentPassword\": \"Admin@123\",\n  \"NewPassword\": \"Author@1234\",\n  \"ConfirmNewPassword\": \"Author@1234\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{authorBaseUrl}}/api/author/auth/ChangePassword",
+                  "host": [
+                    "{{authorBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "author",
+                    "auth",
+                    "ChangePassword"
+                  ]
+                },
+                "description": "Changes the authenticated Author's password and revokes active refresh tokens (`RefreshTokenHash` and `PreviousRefreshTokenHash`)."
+              },
+              "response": []
+            },
+            {
+              "name": "Author Logout (Revokes RefreshToken + Deletes HttpOnly Cookies)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{authorBaseUrl}}/api/author/auth/Logout",
+                  "host": [
+                    "{{authorBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "author",
+                    "auth",
+                    "Logout"
+                  ]
+                },
+                "description": "Clears `RefreshTokenHash`, `RefreshTokenExpiresAt`, `PreviousRefreshTokenHash`, and `PreviousRefreshTokenExpiresAt` in `dbo.Tbl_Author` and deletes both `HttpOnly` cookies."
+              },
+              "response": []
+            }
+          ]
+        },
         {
           "name": "2.1 Article Category (Author Dropdown)",
           "item": [

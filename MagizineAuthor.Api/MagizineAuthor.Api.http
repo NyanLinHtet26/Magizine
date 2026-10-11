@@ -4,12 +4,72 @@
 GET {{MagizineAuthor.Api_HostAddress}}/openapi/v1.json
 Accept: application/json
 
-### 2. Get Active Categories Dropdown List
+### 2. Author Self-Registration (IsApproved = false, Pending Admin Approval)
+POST {{MagizineAuthor.Api_HostAddress}}/api/author/auth/Register
+Content-Type: application/json
+
+{
+  "FirstName": "Julian",
+  "LastName": "Vance",
+  "Email": "julian.vance@ledition.com",
+  "Password": "Author@123",
+  "ConfirmPassword": "Author@123",
+  "Title": "Architectural Critic",
+  "Bio": "Writes on brutalist geometry and Nordic interiors.",
+  "PhotoUrl": null,
+  "InstagramUrl": "https://instagram.com/julianvance",
+  "TwitterUrl": null,
+  "WebsiteUrl": "https://julianvance.com"
+}
+
+### 3. Author Sign-In (Sets author_access_token & author_refresh_token HttpOnly Cookies)
+# @name authorLogin
+POST {{MagizineAuthor.Api_HostAddress}}/api/author/auth/Login
+Content-Type: application/json
+
+{
+  "EmailOrSlug": "elena.rostova@ledition.com",
+  "Password": "Admin@123"
+}
+
+###
+@author_token = {{authorLogin.response.body.Data.AccessToken}}
+
+### 4. Get Current Author Profile (/Me)
+GET {{MagizineAuthor.Api_HostAddress}}/api/author/auth/Me
+Authorization: Bearer {{author_token}}
+
+### 5. Refresh Author Session (Uses author_refresh_token HttpOnly Cookie + 30s Grace Period)
+POST {{MagizineAuthor.Api_HostAddress}}/api/author/auth/Refresh
+Content-Type: application/json
+
+{}
+
+### 6. Update Current Author Profile
+POST {{MagizineAuthor.Api_HostAddress}}/api/author/auth/UpdateProfile
+Authorization: Bearer {{author_token}}
+Content-Type: application/json
+
+{
+  "FirstName": "Elena",
+  "LastName": "Rostova",
+  "Email": "elena.rostova@ledition.com",
+  "Title": "Senior Editor & Cultural Essayist",
+  "Bio": "Elena Rostova writes on quiet luxury, minimalist aesthetics, and modern literature.",
+  "PhotoUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb",
+  "InstagramUrl": "https://instagram.com/elenarostova",
+  "TwitterUrl": "https://twitter.com/elenarostova",
+  "WebsiteUrl": "https://elenarostova.com"
+}
+
+### 7. Get Active Categories Dropdown List
 GET {{MagizineAuthor.Api_HostAddress}}/api/author/article-category/list
+Authorization: Bearer {{author_token}}
 Accept: application/json
 
-### 3. List My Articles (Tbl_RequestArticle: Draft, Submitted, Approved, Rejected)
+### 8. List My Articles (Tbl_RequestArticle: Draft, Submitted, Approved, Rejected)
 POST {{MagizineAuthor.Api_HostAddress}}/api/author/article/List
+Authorization: Bearer {{author_token}}
 Content-Type: application/json
 
 {
@@ -20,26 +80,36 @@ Content-Type: application/json
   "Status": null
 }
 
-### 4. Get My Article Detail (By RequestArticleId)
+### 9. Get My Article Detail (By RequestArticleId)
 POST {{MagizineAuthor.Api_HostAddress}}/api/author/article/Detail
+Authorization: Bearer {{author_token}}
 Content-Type: application/json
 
 {
   "RequestArticleId": "01JREQ00000000000000000002"
 }
 
-### 5. Submit My Draft Article for Admin Review
+### 10. Submit My Draft Article for Admin Review
 POST {{MagizineAuthor.Api_HostAddress}}/api/author/article/SubmitForReview
+Authorization: Bearer {{author_token}}
 Content-Type: application/json
 
 {
   "RequestArticleId": "01JREQ00000000000000000002"
 }
 
-### 6. Delete My Article (Allowed While Status != Approved)
+### 11. Delete My Article (Allowed While Status != Approved)
 POST {{MagizineAuthor.Api_HostAddress}}/api/author/article/Delete
+Authorization: Bearer {{author_token}}
 Content-Type: application/json
 
 {
   "RequestArticleId": "01JREQ00000000000000000002"
 }
+
+### 12. Author Logout (Clears RefreshTokenHash & PreviousRefreshTokenHash + Deletes HttpOnly Cookies)
+POST {{MagizineAuthor.Api_HostAddress}}/api/author/auth/Logout
+Authorization: Bearer {{author_token}}
+Content-Type: application/json
+
+{}

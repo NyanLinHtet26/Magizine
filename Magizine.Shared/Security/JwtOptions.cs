@@ -32,6 +32,14 @@ public sealed class JwtOptions
 
     public const int MaxExpiryMinutes = 1440;
 
+    /// <summary>Bounds on the refresh-token lifetime in days.</summary>
+    public const int MinRefreshExpiryDays = 1;
+
+    public const int MaxRefreshExpiryDays = 90;
+
+    /// <summary>Maximum allowed grace period in seconds for concurrent refresh requests.</summary>
+    public const int MaxGracePeriodSeconds = 300;
+
     /// <summary>Unique name of the token issuer, checked on every validated request.</summary>
     [Required]
     public string Issuer { get; set; } = string.Empty;
@@ -50,8 +58,25 @@ public sealed class JwtOptions
     [Range(MinExpiryMinutes, MaxExpiryMinutes)]
     public int AccessTokenExpiryMinutes { get; set; } = 60;
 
+    /// <summary>Refresh-token lifetime in days.</summary>
+    [Range(MinRefreshExpiryDays, MaxRefreshExpiryDays)]
+    public int RefreshTokenExpiryDays { get; set; } = 7;
+
+    /// <summary>
+    /// Grace period in seconds during which a just-rotated refresh token remains accepted
+    /// so concurrent multi-tab refresh requests do not invalidate the active session.
+    /// </summary>
+    [Range(0, MaxGracePeriodSeconds)]
+    public int RefreshTokenGracePeriodSeconds { get; set; } = 30;
+
     /// <summary>The configured lifetime as a <see cref="TimeSpan"/>.</summary>
     public TimeSpan AccessTokenLifetime => TimeSpan.FromMinutes(AccessTokenExpiryMinutes);
+
+    /// <summary>The configured refresh-token lifetime as a <see cref="TimeSpan"/>.</summary>
+    public TimeSpan RefreshTokenLifetime => TimeSpan.FromDays(RefreshTokenExpiryDays);
+
+    /// <summary>The configured concurrent-refresh grace period as a <see cref="TimeSpan"/>.</summary>
+    public TimeSpan RefreshTokenGracePeriod => TimeSpan.FromSeconds(RefreshTokenGracePeriodSeconds);
 
     /// <summary>Wraps <see cref="Key"/> as the HMAC signing key.</summary>
     public SymmetricSecurityKey ToSigningKey() => new(Encoding.UTF8.GetBytes(Key));
@@ -133,6 +158,20 @@ public sealed class JwtOptions
             problems.Add(
                 $"'{SectionName}:AccessTokenExpiryMinutes' is {AccessTokenExpiryMinutes}; "
                 + $"it must be between {MinExpiryMinutes} and {MaxExpiryMinutes}.");
+        }
+
+        if (RefreshTokenExpiryDays is < MinRefreshExpiryDays or > MaxRefreshExpiryDays)
+        {
+            problems.Add(
+                $"'{SectionName}:RefreshTokenExpiryDays' is {RefreshTokenExpiryDays}; "
+                + $"it must be between {MinRefreshExpiryDays} and {MaxRefreshExpiryDays}.");
+        }
+
+        if (RefreshTokenGracePeriodSeconds is < 0 or > MaxGracePeriodSeconds)
+        {
+            problems.Add(
+                $"'{SectionName}:RefreshTokenGracePeriodSeconds' is {RefreshTokenGracePeriodSeconds}; "
+                + $"it must be between 0 and {MaxGracePeriodSeconds}.");
         }
 
         if (problems.Count > 0)

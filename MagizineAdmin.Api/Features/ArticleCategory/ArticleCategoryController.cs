@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace MagizineAdmin.Api.Features.ArticleCategory;
 
-// [Authorize] // Temporarily commented out for testing without a login token
+[Authorize]
 [ApiController]
 [Route("api/admin/article-category")]
 public sealed class ArticleCategoryController : ControllerBase

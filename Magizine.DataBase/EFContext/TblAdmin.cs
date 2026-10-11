@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Magizine.DataBase.Models;
@@ -14,6 +14,14 @@ public partial class TblAdmin
     public string PasswordHash { get; set; } = null!;
 
     public string Role { get; set; } = null!;
+
+    public string? RefreshTokenHash { get; set; }
+
+    public DateTimeOffset? RefreshTokenExpiresAt { get; set; }
+
+    public string? PreviousRefreshTokenHash { get; set; }
+
+    public DateTimeOffset? PreviousRefreshTokenExpiresAt { get; set; }
 
     public DateTimeOffset? LastLoginAt { get; set; }
 

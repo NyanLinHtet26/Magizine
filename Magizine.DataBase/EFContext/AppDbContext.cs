@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 
@@ -107,6 +107,12 @@ public partial class AppDbContext : DbContext
                 .IsUnique()
                 .HasFilter("([IsDeleted]=(0))");
 
+            entity.HasIndex(e => e.RefreshTokenHash, "IX_Tbl_Admin_RefreshTokenHash")
+                .HasFilter("([RefreshTokenHash] IS NOT NULL AND [IsDeleted]=(0))");
+
+            entity.HasIndex(e => e.PreviousRefreshTokenHash, "IX_Tbl_Admin_PreviousRefreshTokenHash")
+                .HasFilter("([PreviousRefreshTokenHash] IS NOT NULL AND [IsDeleted]=(0))");
+
             entity.Property(e => e.AdminId)
                 .HasMaxLength(26)
                 .IsUnicode(false);
@@ -117,6 +123,8 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Email).HasMaxLength(100);
             entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_Admin_IsActive");
             entity.Property(e => e.PasswordHash).HasMaxLength(255);
+            entity.Property(e => e.RefreshTokenHash).HasMaxLength(128);
+            entity.Property(e => e.PreviousRefreshTokenHash).HasMaxLength(128);
             entity.Property(e => e.Role)
                 .HasMaxLength(30)
                 .HasDefaultValue("Editor", "DF_Admin_Role");
@@ -269,6 +277,12 @@ public partial class AppDbContext : DbContext
                 .IsUnique()
                 .HasFilter("([IsDeleted]=(0))");
 
+            entity.HasIndex(e => e.RefreshTokenHash, "IX_Tbl_Author_RefreshTokenHash")
+                .HasFilter("([RefreshTokenHash] IS NOT NULL AND [IsDeleted]=(0))");
+
+            entity.HasIndex(e => e.PreviousRefreshTokenHash, "IX_Tbl_Author_PreviousRefreshTokenHash")
+                .HasFilter("([PreviousRefreshTokenHash] IS NOT NULL AND [IsDeleted]=(0))");
+
             entity.Property(e => e.AuthorId)
                 .HasMaxLength(26)
                 .IsUnicode(false);
@@ -284,6 +298,8 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.LastName).HasMaxLength(50);
             entity.Property(e => e.PasswordHash).HasMaxLength(255);
             entity.Property(e => e.PhotoUrl).HasMaxLength(300);
+            entity.Property(e => e.RefreshTokenHash).HasMaxLength(128);
+            entity.Property(e => e.PreviousRefreshTokenHash).HasMaxLength(128);
             entity.Property(e => e.Slug).HasMaxLength(100);
             entity.Property(e => e.Title).HasMaxLength(100);
             entity.Property(e => e.TwitterUrl).HasMaxLength(300);

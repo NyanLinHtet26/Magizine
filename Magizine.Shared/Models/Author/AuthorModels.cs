@@ -17,6 +17,7 @@ public sealed class AuthorResModel
     public string Slug { get; set; } = null!;
     public bool IsApproved { get; set; }
     public bool IsActive { get; set; }
+    public DateTimeOffset? LastLoginAt { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }
 }

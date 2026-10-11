@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -12,21 +14,20 @@ namespace Magizine.Shared.Security;
 /// <param name="SessionId">The <c>jti</c> embedded in the token.</param>
 public sealed record AccessToken(string Token, DateTimeOffset ExpiresAt, string SessionId);
 
+/// <summary>A freshly generated opaque refresh token and its SHA-256 database hash.</summary>
+/// <param name="Token">The 64-byte CSPRNG Base64Url string sent in the HttpOnly cookie. Never stored in plaintext.</param>
+/// <param name="TokenHash">The uppercase SHA-256 hex digest stored in <c>Tbl_Admin.RefreshTokenHash</c>.</param>
+/// <param name="ExpiresAt">When the refresh token expires.</param>
+public sealed record RefreshToken(string Token, string TokenHash, DateTimeOffset ExpiresAt);
+
 /// <summary>
-/// Issues signed access tokens. The only place in the solution that creates a JWT.
+/// Issues signed access tokens and cryptographically random refresh tokens.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Tokens are stateless: the <c>sub</c> claim carries the user id and nothing is stored server
-/// side. That is a deliberate trade - no session table to query on every request, but also no
-/// instant revocation. When logout-that-actually-logs-out or forced sign-out is needed, add a
-/// security-version claim and check it against the user row, or move to reference tokens.
-/// </para>
-/// <para>
-/// The identity in the token is the real user id, not an encrypted blob and not a shared
-/// "subject" config value. Nothing is encrypted here: the payload is readable by anyone holding
-/// the token, which is fine because it contains no secrets - only an id, a username and a role.
-/// Signatures stop tampering, not reading.
+/// Access tokens are stateless JWTs (<c>sub</c>, <c>jti</c>, <c>username</c>, <c>role</c>, <c>typ=access</c>).
+/// Refresh tokens are 64-byte CSPRNG opaque tokens whose SHA-256 hash is persisted in the database
+/// to support rotation, a 30-second concurrent grace period, and server-side revocation on logout.
 /// </para>
 /// <para>
 /// Uses <see cref="TimeProvider"/> rather than <see cref="DateTimeOffset.UtcNow"/> so token
@@ -58,7 +59,7 @@ public sealed class JwtTokenGenerator(IOptions<JwtOptions> options, TimeProvider
         var now = timeProvider.GetUtcNow();
         var expiresAt = now.Add(_options.AccessTokenLifetime);
         var jti = string.IsNullOrWhiteSpace(sessionId)
-            ? Guid.NewGuid().ToString("N")
+            ? Ulid.NewUlid().ToString()
             : sessionId;
 
         var claims = new List<Claim>
@@ -88,5 +89,29 @@ public sealed class JwtTokenGenerator(IOptions<JwtOptions> options, TimeProvider
             new JwtSecurityTokenHandler().WriteToken(token),
             expiresAt,
             jti);
+    }
+
+    /// <summary>
+    /// Generates a 64-byte CSPRNG refresh token and its SHA-256 hex digest.
+    /// </summary>
+    public RefreshToken GenerateRefreshToken()
+    {
+        var now = timeProvider.GetUtcNow();
+        var expiresAt = now.Add(_options.RefreshTokenLifetime);
+        var rawBytes = RandomNumberGenerator.GetBytes(64);
+        var rawToken = Base64UrlEncoder.Encode(rawBytes);
+        var tokenHash = ComputeTokenHash(rawToken);
+
+        return new RefreshToken(rawToken, tokenHash, expiresAt);
+    }
+
+    /// <summary>
+    /// Computes the deterministic uppercase SHA-256 hex hash of a raw refresh token.
+    /// </summary>
+    public string ComputeTokenHash(string rawToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(rawToken);
+        var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(rawToken.Trim()));
+        return Convert.ToHexString(hashBytes);
     }
 }

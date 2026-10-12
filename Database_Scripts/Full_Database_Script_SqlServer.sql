@@ -25,6 +25,7 @@ SET QUOTED_IDENTIFIER ON;
 SET ANSI_NULLS ON;
 GO
 
+IF OBJECT_ID('dbo.Tbl_Reader', 'U') IS NOT NULL DROP TABLE dbo.Tbl_Reader;
 IF OBJECT_ID('dbo.Tbl_Ads', 'U') IS NOT NULL DROP TABLE dbo.Tbl_Ads;
 IF OBJECT_ID('dbo.Tbl_Notification', 'U') IS NOT NULL DROP TABLE dbo.Tbl_Notification;
 IF OBJECT_ID('dbo.Tbl_AboutAndAppData', 'U') IS NOT NULL DROP TABLE dbo.Tbl_AboutAndAppData;
@@ -328,6 +329,38 @@ GO
 
 CREATE NONCLUSTERED INDEX IX_Tbl_Ads_Placement ON dbo.Tbl_Ads(Placement, IsActive) WHERE IsDeleted = 0;
 CREATE NONCLUSTERED INDEX IX_Tbl_Ads_Category  ON dbo.Tbl_Ads(ArticleCategoryId)   WHERE IsDeleted = 0;
+GO
+
+-- ----------------------------------------------------------------------------
+-- 11. Tbl_Reader
+-- ----------------------------------------------------------------------------
+CREATE TABLE dbo.Tbl_Reader (
+    ReaderId                      VARCHAR(26)       NOT NULL PRIMARY KEY,
+    FirstName                     NVARCHAR(50)      NOT NULL,
+    LastName                      NVARCHAR(50)      NOT NULL,
+    Username                      NVARCHAR(50)      NOT NULL,
+    Email                         NVARCHAR(100)     NOT NULL,
+    PasswordHash                  NVARCHAR(255)     NOT NULL,
+    AvatarUrl                     NVARCHAR(300)     NULL,
+    Bio                           NVARCHAR(300)     NULL,
+    RefreshTokenHash              NVARCHAR(128)     NULL,
+    RefreshTokenExpiresAt         DATETIMEOFFSET    NULL,
+    PreviousRefreshTokenHash      NVARCHAR(128)     NULL,
+    PreviousRefreshTokenExpiresAt DATETIMEOFFSET    NULL,
+    LastLoginAt                   DATETIMEOFFSET    NULL,
+    IsActive                      BIT               NOT NULL CONSTRAINT DF_Reader_IsActive DEFAULT 1,
+    CreatedAt                     DATETIMEOFFSET    NOT NULL CONSTRAINT DF_Reader_CreatedAt DEFAULT SYSDATETIMEOFFSET(),
+    UpdatedAt                     DATETIMEOFFSET    NULL,
+    IsDeleted                     BIT               NOT NULL CONSTRAINT DF_Reader_IsDeleted DEFAULT 0,
+    DeletedAt                     DATETIMEOFFSET    NULL,
+    DeletedByAdminId              VARCHAR(26)       NULL CONSTRAINT FK_Reader_DeletedByAdmin REFERENCES dbo.Tbl_Admin(AdminId)
+);
+GO
+
+CREATE UNIQUE NONCLUSTERED INDEX UX_Tbl_Reader_Username_NotDeleted     ON dbo.Tbl_Reader(Username)                 WHERE IsDeleted = 0;
+CREATE UNIQUE NONCLUSTERED INDEX UX_Tbl_Reader_Email_NotDeleted        ON dbo.Tbl_Reader(Email)                    WHERE IsDeleted = 0;
+CREATE NONCLUSTERED INDEX        IX_Tbl_Reader_RefreshTokenHash         ON dbo.Tbl_Reader(RefreshTokenHash)         WHERE RefreshTokenHash IS NOT NULL AND IsDeleted = 0;
+CREATE NONCLUSTERED INDEX        IX_Tbl_Reader_PreviousRefreshTokenHash ON dbo.Tbl_Reader(PreviousRefreshTokenHash) WHERE PreviousRefreshTokenHash IS NOT NULL AND IsDeleted = 0;
 GO
 
 
@@ -951,6 +984,29 @@ BEGIN
         N'https://images.unsplash.com/photo-1513694203232-719a280e022f',
         N'Minimalist limestone courtyard in Kyoto.',
         N'Photo by Kenji Sato',
+        1,
+        SYSDATETIMEOFFSET()
+    );
+END;
+GO
+
+-- Seed 8: Default Public Reader in Tbl_Reader (sophia.reader / Admin@123)
+IF NOT EXISTS (SELECT 1 FROM dbo.Tbl_Reader WHERE ReaderId = '01JREADER00000000000000001')
+BEGIN
+    INSERT INTO dbo.Tbl_Reader (
+        ReaderId, FirstName, LastName, Username, Email, PasswordHash,
+        AvatarUrl, Bio, IsActive, CreatedAt
+    )
+    VALUES
+    (
+        '01JREADER00000000000000001',
+        N'Sophia',
+        N'Laurent',
+        N'sophia.reader',
+        N'sophia.reader@ledition.com',
+        N'$2a$12$TIcVIJCHDmVR.1v63Ap/4eFbqiviwmsBe6Di5kkDaiuiD58n5HxN.',
+        N'https://images.unsplash.com/photo-1544005313-94ddf0286df2',
+        N'Design enthusiast and avid reader of contemporary architecture and slow living essays.',
         1,
         SYSDATETIMEOFFSET()
     );

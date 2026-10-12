@@ -66,4 +66,6 @@ public partial class TblAdmin
     public virtual ICollection<TblRequestArticle> TblRequestArticleDeletedByAdmins { get; set; } = new List<TblRequestArticle>();
 
     public virtual ICollection<TblRequestArticle> TblRequestArticleReviewedByAdmins { get; set; } = new List<TblRequestArticle>();
+
+    public virtual ICollection<TblReader> TblReaders { get; set; } = new List<TblReader>();
 }

@@ -1,21 +1,104 @@
 @MagizinePublic.Api_HostAddress = http://localhost:5080
+@AccessToken = paste-your-jwt-access-token-here
 
-### 1. OpenAPI v1 Document
+# ==============================================================================
+# 0. PUBLIC READER AUTHENTICATION (/api/public/auth)
+# ==============================================================================
+
+### 0.1 Reader Self-Registration (Auto-Active + Immediately Issues HttpOnly Cookies)
+POST {{MagizinePublic.Api_HostAddress}}/api/public/auth/Register
+Content-Type: application/json
+Accept: application/json
+
+{
+  "FirstName": "Claire",
+  "LastName": "Moreau",
+  "Username": "claire.moreau",
+  "Email": "claire.moreau@ledition.com",
+  "Password": "Reader@123",
+  "ConfirmPassword": "Reader@123",
+  "AvatarUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb",
+  "Bio": "Collector of contemporary design books and photography essays."
+}
+
+### 0.2 Reader Login (Default Seeded Account: sophia.reader / Admin@123)
+POST {{MagizinePublic.Api_HostAddress}}/api/public/auth/Login
+Content-Type: application/json
+Accept: application/json
+
+{
+  "UsernameOrEmail": "sophia.reader",
+  "Password": "Admin@123"
+}
+
+### 0.3 Reader Refresh Token (Rotates RefreshToken + 30-Second Grace Period)
+POST {{MagizinePublic.Api_HostAddress}}/api/public/auth/Refresh
+Content-Type: application/json
+Accept: application/json
+
+{
+  "RefreshToken": ""
+}
+
+### 0.4 Get Current Authenticated Reader Profile (GET /Me)
+GET {{MagizinePublic.Api_HostAddress}}/api/public/auth/Me
+Authorization: Bearer {{AccessToken}}
+Accept: application/json
+
+### 0.5 Update Current Reader Profile ([Authorize])
+POST {{MagizinePublic.Api_HostAddress}}/api/public/auth/UpdateProfile
+Authorization: Bearer {{AccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "FirstName": "Sophia",
+  "LastName": "Laurent",
+  "Username": "sophia.reader",
+  "Email": "sophia.reader@ledition.com",
+  "AvatarUrl": "https://images.unsplash.com/photo-1544005313-94ddf0286df2",
+  "Bio": "Design enthusiast and avid reader of contemporary architecture and slow living essays."
+}
+
+### 0.6 Change Reader Password ([Authorize])
+POST {{MagizinePublic.Api_HostAddress}}/api/public/auth/ChangePassword
+Authorization: Bearer {{AccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "CurrentPassword": "Admin@123",
+  "NewPassword": "Admin@123",
+  "ConfirmNewPassword": "Admin@123"
+}
+
+### 0.7 Reader Logout (Revokes RefreshToken & Clears HttpOnly Cookies)
+POST {{MagizinePublic.Api_HostAddress}}/api/public/auth/Logout
+Content-Type: application/json
+Accept: application/json
+
+{}
+
+# ==============================================================================
+# 1. PUBLIC BROWSING ENDPOINTS (Unauthenticated / [AllowAnonymous])
+# ==============================================================================
+
+### 1.1 OpenAPI v1 Document
 GET {{MagizinePublic.Api_HostAddress}}/openapi/v1.json
 Accept: application/json
 
-### 2. Fetch the list of active article categories
+### 1.2 Fetch the list of active article categories
 GET {{MagizinePublic.Api_HostAddress}}/api/public/article-category/list
 Accept: application/json
 
-### 3. Fetch details of a specific article category by its slug
+### 1.3 Fetch details of a specific article category by its slug
 GET {{MagizinePublic.Api_HostAddress}}/api/public/article-category/beauty
 Accept: application/json
 
-### 4. Fetch paginated list of Published articles
+### 1.4 Fetch paginated list of Published articles
 GET {{MagizinePublic.Api_HostAddress}}/api/public/article/list?Page=1&PageSize=20
 Accept: application/json
 
-### 5. Fetch a single Published article and its linked gallery photos by slug
+### 1.5 Fetch a single Published article and its linked gallery photos by slug
 GET {{MagizinePublic.Api_HostAddress}}/api/public/article/the-art-of-quiet-luxury
 Accept: application/json

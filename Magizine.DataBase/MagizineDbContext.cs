@@ -33,5 +33,6 @@ public class MagizineDbContext : AppDbContext
         modelBuilder.Entity<TblNewsletter>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<TblNotification>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<TblAd>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<TblReader>().HasQueryFilter(e => !e.IsDeleted);
     }
 }

@@ -95,6 +95,11 @@
       "key": "requestArticleId",
       "value": "01JREQ00000000000000000001",
       "type": "string"
+    },
+    {
+      "key": "readerId",
+      "value": "01JREADER00000000000000001",
+      "type": "string"
     }
   ],
   "item": [
@@ -2626,8 +2631,363 @@
     },
     {
       "name": "3. MagizinePublic.Api (Port 5080)",
-      "description": "Public Reader API (`MagizinePublic.Api`).\n\nProvides unauthenticated read access to `Published` articles (and their linked photo galleries) and active categories.",
+      "description": "Public Reader API (`MagizinePublic.Api`).\n\nProvides:\n- **Public Reader Authentication (`/api/public/auth`)**: Zero-friction self-registration with immediate auto-activation & `HttpOnly` cookies (`reader_access_token` + `reader_refresh_token`), Username/Email login, and 30-second concurrent refresh grace period.\n- **Unauthenticated Public Browsing**: `Published` articles (and their linked photo galleries) and active categories.",
       "item": [
+        {
+          "name": "3.0 Public Reader Auth (Register, Login, Refresh, Me, Logout)",
+          "description": "Enterprise-grade Public Reader Authentication & Session Management flow (`AccessToken` + Rotating `RefreshToken` + Isolated `HttpOnly` Cookies + 30-Second Concurrent Grace Period).",
+          "item": [
+            {
+              "name": "Reader Self-Register (Auto-Active + Sets HttpOnly Cookies + Captures jwtToken)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('Registration succeeded and issued AccessToken immediately', function () {",
+                      "    pm.expect(json.IsSuccess).to.eql(true);",
+                      "    pm.expect(json.RespCode).to.eql('MS#000');",
+                      "    pm.expect(json.Data.AccessToken).to.be.a('string').and.not.empty;",
+                      "    pm.expect(json.Data.Reader.IsActive).to.eql(true);",
+                      "});",
+                      "if (json && json.Data && json.Data.AccessToken) {",
+                      "    pm.collectionVariables.set('jwtToken', json.Data.AccessToken);",
+                      "    if (json.Data.Reader && json.Data.Reader.ReaderId) {",
+                      "        pm.collectionVariables.set('readerId', json.Data.Reader.ReaderId);",
+                      "    }",
+                      "    if (pm.environment && pm.environment.name) {",
+                      "        pm.environment.set('jwtToken', json.Data.AccessToken);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"FirstName\": \"Claire\",\n  \"LastName\": \"Moreau\",\n  \"Username\": \"claire.moreau\",\n  \"Email\": \"claire.moreau@ledition.com\",\n  \"Password\": \"Reader@123\",\n  \"ConfirmPassword\": \"Reader@123\",\n  \"AvatarUrl\": \"https://images.unsplash.com/photo-1534528741775-53994a69daeb\",\n  \"Bio\": \"Collector of contemporary design books and photography essays.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{publicBaseUrl}}/api/public/auth/Register",
+                  "host": [
+                    "{{publicBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "public",
+                    "auth",
+                    "Register"
+                  ]
+                },
+                "description": "Self-registers a new public reader account in `dbo.Tbl_Reader` (`IsActive = true`), auto-generates `Username` if omitted, and immediately issues `reader_access_token` (`Path=/`) and `reader_refresh_token` (`Path=/api/public/auth`) `HttpOnly` cookies."
+              },
+              "response": []
+            },
+            {
+              "name": "Reader Login (Sets HttpOnly Cookies + Captures jwtToken)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('Login succeeded and issued AccessToken', function () {",
+                      "    pm.expect(json.IsSuccess).to.eql(true);",
+                      "    pm.expect(json.RespCode).to.eql('MS#000');",
+                      "    pm.expect(json.Data.AccessToken).to.be.a('string').and.not.empty;",
+                      "});",
+                      "if (json && json.Data && json.Data.AccessToken) {",
+                      "    pm.collectionVariables.set('jwtToken', json.Data.AccessToken);",
+                      "    if (json.Data.Reader && json.Data.Reader.ReaderId) {",
+                      "        pm.collectionVariables.set('readerId', json.Data.Reader.ReaderId);",
+                      "    }",
+                      "    if (pm.environment && pm.environment.name) {",
+                      "        pm.environment.set('jwtToken', json.Data.AccessToken);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"UsernameOrEmail\": \"sophia.reader\",\n  \"Password\": \"Admin@123\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{publicBaseUrl}}/api/public/auth/Login",
+                  "host": [
+                    "{{publicBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "public",
+                    "auth",
+                    "Login"
+                  ]
+                },
+                "description": "Authenticates a public reader by `Username` or `Email` (`sophia.reader` / `sophia.reader@ledition.com`, default password `Admin@123`). Sets `reader_access_token` (`Path=/`) and `reader_refresh_token` (`Path=/api/public/auth`) `HttpOnly` cookies."
+              },
+              "response": []
+            },
+            {
+              "name": "Reader Refresh Token (Rotates RefreshToken + 30s Grace Window)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "if (json && json.Data && json.Data.AccessToken) {",
+                      "    pm.collectionVariables.set('jwtToken', json.Data.AccessToken);",
+                      "    if (pm.environment && pm.environment.name) {",
+                      "        pm.environment.set('jwtToken', json.Data.AccessToken);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"RefreshToken\": \"\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{publicBaseUrl}}/api/public/auth/Refresh",
+                  "host": [
+                    "{{publicBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "public",
+                    "auth",
+                    "Refresh"
+                  ]
+                },
+                "description": "Rotates the reader's refresh token using the `reader_refresh_token` `HttpOnly` cookie (or optional JSON body `RefreshToken` fallback) with a 30-second `PreviousRefreshTokenHash` grace window for multi-tab concurrency."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Current Reader Profile (GET /Me)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('Current reader profile returned', function () {",
+                      "    pm.expect(json.IsSuccess).to.eql(true);",
+                      "    pm.expect(json.Data.ReaderId).to.be.a('string').and.not.empty;",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{publicBaseUrl}}/api/public/auth/Me",
+                  "host": [
+                    "{{publicBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "public",
+                    "auth",
+                    "Me"
+                  ]
+                },
+                "description": "Returns the authenticated reader's profile (`ReaderProfileResModel`) using the `Bearer` token or `reader_access_token` `HttpOnly` cookie."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Current Reader Profile",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"FirstName\": \"Sophia\",\n  \"LastName\": \"Laurent\",\n  \"Username\": \"sophia.reader\",\n  \"Email\": \"sophia.reader@ledition.com\",\n  \"AvatarUrl\": \"https://images.unsplash.com/photo-1544005313-94ddf0286df2\",\n  \"Bio\": \"Design enthusiast and avid reader of contemporary architecture and slow living essays.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{publicBaseUrl}}/api/public/auth/UpdateProfile",
+                  "host": [
+                    "{{publicBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "public",
+                    "auth",
+                    "UpdateProfile"
+                  ]
+                },
+                "description": "Updates the authenticated reader's profile fields (`FirstName`, `LastName`, `Username`, `Email`, `AvatarUrl`, `Bio`)."
+              },
+              "response": []
+            },
+            {
+              "name": "Change Current Reader Password",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"CurrentPassword\": \"Admin@123\",\n  \"NewPassword\": \"Admin@123\",\n  \"ConfirmNewPassword\": \"Admin@123\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{publicBaseUrl}}/api/public/auth/ChangePassword",
+                  "host": [
+                    "{{publicBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "public",
+                    "auth",
+                    "ChangePassword"
+                  ]
+                },
+                "description": "Verifies `CurrentPassword`, hashes `NewPassword`, revokes refresh tokens in `dbo.Tbl_Reader`, and clears auth cookies."
+              },
+              "response": []
+            },
+            {
+              "name": "Reader Logout (Revokes RefreshToken & Clears Cookies)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.collectionVariables.set('jwtToken', '');"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{publicBaseUrl}}/api/public/auth/Logout",
+                  "host": [
+                    "{{publicBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "public",
+                    "auth",
+                    "Logout"
+                  ]
+                },
+                "description": "Revokes both `RefreshTokenHash` and `PreviousRefreshTokenHash` in `dbo.Tbl_Reader` and deletes the `reader_access_token` and `reader_refresh_token` cookies."
+              },
+              "response": []
+            }
+          ]
+        },
         {
           "name": "3.1 Public Article Categories",
           "item": [

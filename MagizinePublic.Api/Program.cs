@@ -55,6 +55,7 @@ app.UseMagizineStaticFiles();
 // this permits no cross-origin browser calls, which is the intended state until a frontend exists.
 app.UseCors();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

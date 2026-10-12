@@ -33,6 +33,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<TblRequestArticle> TblRequestArticles { get; set; }
 
+    public virtual DbSet<TblReader> TblReaders { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<TblAboutAndAppDatum>(entity =>
@@ -481,6 +483,49 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.ReviewedByAdmin).WithMany(p => p.TblRequestArticleReviewedByAdmins)
                 .HasForeignKey(d => d.ReviewedByAdminId)
                 .HasConstraintName("FK_RequestArticle_ReviewedByAdmin");
+        });
+
+        modelBuilder.Entity<TblReader>(entity =>
+        {
+            entity.HasKey(e => e.ReaderId);
+
+            entity.ToTable("Tbl_Reader");
+
+            entity.HasIndex(e => e.Username, "UX_Tbl_Reader_Username_NotDeleted")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => e.Email, "UX_Tbl_Reader_Email_NotDeleted")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => e.RefreshTokenHash, "IX_Tbl_Reader_RefreshTokenHash")
+                .HasFilter("([RefreshTokenHash] IS NOT NULL AND [IsDeleted]=(0))");
+
+            entity.HasIndex(e => e.PreviousRefreshTokenHash, "IX_Tbl_Reader_PreviousRefreshTokenHash")
+                .HasFilter("([PreviousRefreshTokenHash] IS NOT NULL AND [IsDeleted]=(0))");
+
+            entity.Property(e => e.ReaderId)
+                .HasMaxLength(26)
+                .IsUnicode(false);
+            entity.Property(e => e.FirstName).HasMaxLength(50);
+            entity.Property(e => e.LastName).HasMaxLength(50);
+            entity.Property(e => e.Username).HasMaxLength(50);
+            entity.Property(e => e.Email).HasMaxLength(100);
+            entity.Property(e => e.PasswordHash).HasMaxLength(255);
+            entity.Property(e => e.AvatarUrl).HasMaxLength(300);
+            entity.Property(e => e.Bio).HasMaxLength(300);
+            entity.Property(e => e.RefreshTokenHash).HasMaxLength(128);
+            entity.Property(e => e.PreviousRefreshTokenHash).HasMaxLength(128);
+            entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_Reader_IsActive");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetimeoffset())", "DF_Reader_CreatedAt");
+            entity.Property(e => e.DeletedByAdminId)
+                .HasMaxLength(26)
+                .IsUnicode(false);
+
+            entity.HasOne(d => d.DeletedByAdmin).WithMany(p => p.TblReaders)
+                .HasForeignKey(d => d.DeletedByAdminId)
+                .HasConstraintName("FK_Reader_DeletedByAdmin");
         });
 
         OnModelCreatingPartial(modelBuilder);

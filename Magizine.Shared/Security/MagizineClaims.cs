@@ -48,4 +48,13 @@ public static class MagizineClaims
 
     /// <summary>HttpOnly cookie carrying the long-lived opaque refresh token, scoped to /api/author/auth.</summary>
     public const string AuthorRefreshTokenCookie = "author_refresh_token";
+
+    /// <summary>Role claim value embedded in Public Reader JWTs.</summary>
+    public const string ReaderRole = "Reader";
+
+    /// <summary>HttpOnly cookie carrying the short-lived JWT access token for Public Reader API calls.</summary>
+    public const string ReaderAccessTokenCookie = "reader_access_token";
+
+    /// <summary>HttpOnly cookie carrying the long-lived opaque refresh token, scoped to /api/public/auth.</summary>
+    public const string ReaderRefreshTokenCookie = "reader_refresh_token";
 }

@@ -44,4 +44,6 @@ public partial class TblReader
     public string? DeletedByAdminId { get; set; }
 
     public virtual TblAdmin? DeletedByAdmin { get; set; }
+
+    public virtual ICollection<TblReaderBookmark> TblReaderBookmarks { get; set; } = new List<TblReaderBookmark>();
 }

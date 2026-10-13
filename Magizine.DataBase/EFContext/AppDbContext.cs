@@ -35,6 +35,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<TblReader> TblReaders { get; set; }
 
+    public virtual DbSet<TblReaderBookmark> TblReaderBookmarks { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<TblAboutAndAppDatum>(entity =>
@@ -526,6 +528,39 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.DeletedByAdmin).WithMany(p => p.TblReaders)
                 .HasForeignKey(d => d.DeletedByAdminId)
                 .HasConstraintName("FK_Reader_DeletedByAdmin");
+        });
+
+        modelBuilder.Entity<TblReaderBookmark>(entity =>
+        {
+            entity.HasKey(e => e.ReaderBookmarkId);
+
+            entity.ToTable("Tbl_ReaderBookmark");
+
+            entity.HasIndex(e => new { e.ReaderId, e.ArticleId }, "UQ_ReaderBookmark_Reader_Article")
+                .IsUnique();
+
+            entity.HasIndex(e => new { e.ReaderId, e.CreatedAt }, "IX_Tbl_ReaderBookmark_ReaderId_CreatedAt");
+
+            entity.HasIndex(e => e.ArticleId, "IX_Tbl_ReaderBookmark_ArticleId");
+
+            entity.Property(e => e.ReaderBookmarkId)
+                .HasMaxLength(26)
+                .IsUnicode(false);
+            entity.Property(e => e.ReaderId)
+                .HasMaxLength(26)
+                .IsUnicode(false);
+            entity.Property(e => e.ArticleId)
+                .HasMaxLength(26)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetimeoffset())", "DF_ReaderBookmark_CreatedAt");
+
+            entity.HasOne(d => d.Reader).WithMany(p => p.TblReaderBookmarks)
+                .HasForeignKey(d => d.ReaderId)
+                .HasConstraintName("FK_ReaderBookmark_Reader");
+
+            entity.HasOne(d => d.Article).WithMany(p => p.TblReaderBookmarks)
+                .HasForeignKey(d => d.ArticleId)
+                .HasConstraintName("FK_ReaderBookmark_Article");
         });
 
         OnModelCreatingPartial(modelBuilder);

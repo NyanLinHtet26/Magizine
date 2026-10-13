@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Magizine.DataBase.Models;
@@ -52,4 +52,6 @@ public partial class TblArticle
     public virtual ICollection<TblArticlePhoto> TblArticlePhotos { get; set; } = new List<TblArticlePhoto>();
 
     public virtual ICollection<TblRequestArticle> TblRequestArticles { get; set; } = new List<TblRequestArticle>();
+
+    public virtual ICollection<TblReaderBookmark> TblReaderBookmarks { get; set; } = new List<TblReaderBookmark>();
 }

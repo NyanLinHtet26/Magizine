@@ -3198,7 +3198,312 @@
           ]
         },
         {
-          "name": "3.3 OpenAPI & Scalar Docs (Public)",
+          "name": "3.3 Reader Bookmarks",
+          "description": "Article Bookmark features for authenticated Readers ([Authorize] on /api/public/bookmark). Allows toggling, explicit adding/removing, checking status, and paginated listing of bookmarked articles.",
+          "item": [
+            {
+              "name": "Toggle Article Bookmark (POST /toggle)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('Toggle bookmark response is valid', function () {",
+                      "    pm.expect(json.IsSuccess).to.eql(true);",
+                      "    pm.expect(json.Data).to.have.property('IsBookmarked');",
+                      "    pm.expect(json.Data).to.have.property('BookmarkCount');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{jwtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"ArticleId\": \"01JART00000000000000000001\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{publicBaseUrl}}/api/public/bookmark/toggle",
+                  "host": [
+                    "{{publicBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "public",
+                    "bookmark",
+                    "toggle"
+                  ]
+                },
+                "description": "Toggles bookmark state for the specified article for the authenticated reader."
+              },
+              "response": []
+            },
+            {
+              "name": "Add Article Bookmark (POST /add)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('Add bookmark is successful', function () {",
+                      "    pm.expect(json.IsSuccess).to.eql(true);",
+                      "    pm.expect(json.Data.IsBookmarked).to.eql(true);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{jwtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"ArticleId\": \"01JART00000000000000000001\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{publicBaseUrl}}/api/public/bookmark/add",
+                  "host": [
+                    "{{publicBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "public",
+                    "bookmark",
+                    "add"
+                  ]
+                },
+                "description": "Idempotently bookmarks the specified article for the authenticated reader."
+              },
+              "response": []
+            },
+            {
+              "name": "Remove Article Bookmark (POST /remove)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('Remove bookmark is successful', function () {",
+                      "    pm.expect(json.IsSuccess).to.eql(true);",
+                      "    pm.expect(json.Data.IsBookmarked).to.eql(false);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{jwtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"ArticleId\": \"01JART00000000000000000001\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{publicBaseUrl}}/api/public/bookmark/remove",
+                  "host": [
+                    "{{publicBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "public",
+                    "bookmark",
+                    "remove"
+                  ]
+                },
+                "description": "Idempotently removes the specified article from bookmarks for the authenticated reader."
+              },
+              "response": []
+            },
+            {
+              "name": "Check Article Bookmark Status (GET /check/:articleId)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('Check status response is valid', function () {",
+                      "    pm.expect(json.IsSuccess).to.eql(true);",
+                      "    pm.expect(json.Data).to.have.property('IsBookmarked');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{jwtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{publicBaseUrl}}/api/public/bookmark/check/01JART00000000000000000001",
+                  "host": [
+                    "{{publicBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "public",
+                    "bookmark",
+                    "check",
+                    "01JART00000000000000000001"
+                  ]
+                },
+                "description": "Checks whether the authenticated reader has bookmarked the given article."
+              },
+              "response": []
+            },
+            {
+              "name": "Get My Bookmarked Articles (GET /my-bookmarks)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "const json = pm.response.json();",
+                      "pm.test('Bookmarks list returns valid paged data', function () {",
+                      "    pm.expect(json.IsSuccess).to.eql(true);",
+                      "    pm.expect(json.Data.Items).to.be.an('array');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{jwtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{publicBaseUrl}}/api/public/bookmark/my-bookmarks?Page=1&PageSize=10",
+                  "host": [
+                    "{{publicBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "public",
+                    "bookmark",
+                    "my-bookmarks"
+                  ],
+                  "query": [
+                    {
+                      "key": "Page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "PageSize",
+                      "value": "10"
+                    }
+                  ]
+                },
+                "description": "Returns a paginated list of all Published articles bookmarked by the authenticated reader, ordered by bookmark timestamp descending."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "3.4 OpenAPI & Scalar Docs (Public)",
           "item": [
             {
               "name": "Get Public OpenAPI v1 JSON",

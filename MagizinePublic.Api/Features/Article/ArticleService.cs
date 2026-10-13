@@ -3,7 +3,9 @@ using Magizine.DataBase.Paging;
 using Magizine.Shared.Models;
 using Magizine.Shared.Models.Article;
 using Magizine.Shared.Models.Paging;
+using Magizine.Shared.Security;
 using Magizine.Shared.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -13,14 +15,23 @@ public sealed class ArticleService
 {
     private readonly MagizineDbContext _db;
     private readonly DapperService _dapperService;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<ArticleService> _logger;
 
-    public ArticleService(MagizineDbContext db, DapperService dapperService, ILogger<ArticleService> logger)
+    public ArticleService(
+        MagizineDbContext db,
+        DapperService dapperService,
+        IHttpContextAccessor httpContextAccessor,
+        ILogger<ArticleService> logger)
     {
         _db = db;
         _dapperService = dapperService;
+        _httpContextAccessor = httpContextAccessor;
         _logger = logger;
     }
+
+    private string? CallerReaderId =>
+        _httpContextAccessor.HttpContext?.User?.FindFirst(MagizineClaims.Subject)?.Value;
 
     public async Task<Result<PagedResult<ArticleResModel>>> GetPublishedArticlesAsync(ArticleListReqModel req, CancellationToken ct = default)
     {
@@ -45,6 +56,36 @@ public sealed class ArticleService
                 parameters, 
                 "ArticleId", 
                 pageReq);
+
+            if (paged.Items.Count > 0)
+            {
+                var articleIds = paged.Items.Select(x => x.ArticleId).ToList();
+
+                var counts = await _db.TblReaderBookmarks
+                    .AsNoTracking()
+                    .Where(b => articleIds.Contains(b.ArticleId))
+                    .GroupBy(b => b.ArticleId)
+                    .Select(g => new { ArticleId = g.Key, Count = g.Count() })
+                    .ToDictionaryAsync(x => x.ArticleId, x => x.Count, ct);
+
+                var readerId = CallerReaderId;
+                HashSet<string>? userBookmarkedIds = null;
+
+                if (!string.IsNullOrWhiteSpace(readerId))
+                {
+                    userBookmarkedIds = (await _db.TblReaderBookmarks
+                        .AsNoTracking()
+                        .Where(b => b.ReaderId == readerId && articleIds.Contains(b.ArticleId))
+                        .Select(b => b.ArticleId)
+                        .ToListAsync(ct)).ToHashSet();
+                }
+
+                foreach (var item in paged.Items)
+                {
+                    item.BookmarkCount = counts.GetValueOrDefault(item.ArticleId, 0);
+                    item.IsBookmarked = userBookmarkedIds?.Contains(item.ArticleId) ?? false;
+                }
+            }
 
             return Result<PagedResult<ArticleResModel>>.Success(paged);
         }
@@ -71,6 +112,24 @@ public sealed class ArticleService
             article.Photos = await _dapperService.GetListAsync<ArticlePhotoResModel>(
                 "fn_get_article_photos_by_article_id",
                 new { p_article_id = article.ArticleId });
+
+            var count = await _db.TblReaderBookmarks
+                .AsNoTracking()
+                .CountAsync(b => b.ArticleId == article.ArticleId, ct);
+
+            article.BookmarkCount = count;
+
+            var readerId = CallerReaderId;
+            if (!string.IsNullOrWhiteSpace(readerId))
+            {
+                article.IsBookmarked = await _db.TblReaderBookmarks
+                    .AsNoTracking()
+                    .AnyAsync(b => b.ReaderId == readerId && b.ArticleId == article.ArticleId, ct);
+            }
+            else
+            {
+                article.IsBookmarked = false;
+            }
 
             return Result<ArticleResModel>.Success(article);
         }

@@ -25,6 +25,7 @@ SET QUOTED_IDENTIFIER ON;
 SET ANSI_NULLS ON;
 GO
 
+IF OBJECT_ID('dbo.Tbl_ReaderBookmark', 'U') IS NOT NULL DROP TABLE dbo.Tbl_ReaderBookmark;
 IF OBJECT_ID('dbo.Tbl_Reader', 'U') IS NOT NULL DROP TABLE dbo.Tbl_Reader;
 IF OBJECT_ID('dbo.Tbl_Ads', 'U') IS NOT NULL DROP TABLE dbo.Tbl_Ads;
 IF OBJECT_ID('dbo.Tbl_Notification', 'U') IS NOT NULL DROP TABLE dbo.Tbl_Notification;
@@ -361,6 +362,22 @@ CREATE UNIQUE NONCLUSTERED INDEX UX_Tbl_Reader_Username_NotDeleted     ON dbo.Tb
 CREATE UNIQUE NONCLUSTERED INDEX UX_Tbl_Reader_Email_NotDeleted        ON dbo.Tbl_Reader(Email)                    WHERE IsDeleted = 0;
 CREATE NONCLUSTERED INDEX        IX_Tbl_Reader_RefreshTokenHash         ON dbo.Tbl_Reader(RefreshTokenHash)         WHERE RefreshTokenHash IS NOT NULL AND IsDeleted = 0;
 CREATE NONCLUSTERED INDEX        IX_Tbl_Reader_PreviousRefreshTokenHash ON dbo.Tbl_Reader(PreviousRefreshTokenHash) WHERE PreviousRefreshTokenHash IS NOT NULL AND IsDeleted = 0;
+GO
+
+-- ----------------------------------------------------------------------------
+-- 12. Tbl_ReaderBookmark
+-- ----------------------------------------------------------------------------
+CREATE TABLE dbo.Tbl_ReaderBookmark (
+    ReaderBookmarkId VARCHAR(26)       NOT NULL PRIMARY KEY,
+    ReaderId         VARCHAR(26)       NOT NULL CONSTRAINT FK_ReaderBookmark_Reader REFERENCES dbo.Tbl_Reader(ReaderId) ON DELETE CASCADE,
+    ArticleId        VARCHAR(26)       NOT NULL CONSTRAINT FK_ReaderBookmark_Article REFERENCES dbo.Tbl_Article(ArticleId) ON DELETE CASCADE,
+    CreatedAt        DATETIMEOFFSET    NOT NULL CONSTRAINT DF_ReaderBookmark_CreatedAt DEFAULT SYSDATETIMEOFFSET(),
+    CONSTRAINT UQ_ReaderBookmark_Reader_Article UNIQUE NONCLUSTERED (ReaderId, ArticleId)
+);
+GO
+
+CREATE NONCLUSTERED INDEX IX_Tbl_ReaderBookmark_ReaderId_CreatedAt ON dbo.Tbl_ReaderBookmark (ReaderId, CreatedAt DESC);
+CREATE NONCLUSTERED INDEX IX_Tbl_ReaderBookmark_ArticleId          ON dbo.Tbl_ReaderBookmark (ArticleId);
 GO
 
 
@@ -1008,6 +1025,22 @@ BEGIN
         N'https://images.unsplash.com/photo-1544005313-94ddf0286df2',
         N'Design enthusiast and avid reader of contemporary architecture and slow living essays.',
         1,
+        SYSDATETIMEOFFSET()
+    );
+END;
+GO
+
+-- Seed 9: Default Public Reader Bookmark in Tbl_ReaderBookmark
+IF NOT EXISTS (SELECT 1 FROM dbo.Tbl_ReaderBookmark WHERE ReaderBookmarkId = '01JBKMRK000000000000000001')
+BEGIN
+    INSERT INTO dbo.Tbl_ReaderBookmark (
+        ReaderBookmarkId, ReaderId, ArticleId, CreatedAt
+    )
+    VALUES
+    (
+        '01JBKMRK000000000000000001',
+        '01JREADER00000000000000001',
+        '01JART00000000000000000001',
         SYSDATETIMEOFFSET()
     );
 END;

@@ -55,6 +55,16 @@ public sealed class ArticleResModel
     public DateTimeOffset? UpdatedAt { get; set; }
 
     /// <summary>
+    /// Indicates whether the currently authenticated reader has bookmarked this article. Defaults to false for anonymous visitors.
+    /// </summary>
+    public bool IsBookmarked { get; set; }
+
+    /// <summary>
+    /// Total number of readers who have bookmarked this article.
+    /// </summary>
+    public int BookmarkCount { get; set; }
+
+    /// <summary>
     /// Ordered gallery photos associated with this article (from dbo.Tbl_ArticlePhoto).
     /// </summary>
     public List<ArticlePhotoResModel> Photos { get; set; } = [];

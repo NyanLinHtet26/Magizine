@@ -102,3 +102,47 @@ Accept: application/json
 ### 1.5 Fetch a single Published article and its linked gallery photos by slug
 GET {{MagizinePublic.Api_HostAddress}}/api/public/article/the-art-of-quiet-luxury
 Accept: application/json
+
+# ==============================================================================
+# 2. READER ARTICLE BOOKMARKS (/api/public/bookmark) [Phase 2]
+# ==============================================================================
+
+### 2.1 Toggle Article Bookmark (POST /toggle)
+POST {{MagizinePublic.Api_HostAddress}}/api/public/bookmark/toggle
+Authorization: Bearer {{AccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ArticleId": "01JART00000000000000000001"
+}
+
+### 2.2 Explicitly Add Article Bookmark (POST /add)
+POST {{MagizinePublic.Api_HostAddress}}/api/public/bookmark/add
+Authorization: Bearer {{AccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ArticleId": "01JART00000000000000000001"
+}
+
+### 2.3 Explicitly Remove Article Bookmark (POST /remove or DELETE /{articleId})
+POST {{MagizinePublic.Api_HostAddress}}/api/public/bookmark/remove
+Authorization: Bearer {{AccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ArticleId": "01JART00000000000000000001"
+}
+
+### 2.4 Check Bookmark Status for Article (GET /check/{articleId} - Anonymous or Authenticated)
+GET {{MagizinePublic.Api_HostAddress}}/api/public/bookmark/check/01JART00000000000000000001
+Authorization: Bearer {{AccessToken}}
+Accept: application/json
+
+### 2.5 Get My Bookmarked Articles (GET /my-bookmarks)
+GET {{MagizinePublic.Api_HostAddress}}/api/public/bookmark/my-bookmarks?Page=1&PageSize=10
+Authorization: Bearer {{AccessToken}}
+Accept: application/json
